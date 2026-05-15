@@ -19,14 +19,15 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew assembleDebug
 
-      - name: Sign APK (The Secret Sauce)
-        # هذه الخطوة تقوم بتنزيل أداة التوقيع وتوقيع الملف تلقائياً بمفتاح تصحيح احترافي
+      - name: Advanced Sign & Align APK
+        # استخدام --overwrite و --allowResign يجبر الأداة على معالجة الملف حتى لو كان موقعاً
         run: |
           wget https://github.com/patrickfav/uber-apk-signer/releases/download/v1.3.0/uber-apk-signer-1.3.0.jar
-          java -jar uber-apk-signer-1.3.0.jar --apks app/build/outputs/apk/debug/*.apk
+          java -jar uber-apk-signer-1.3.0.jar --apks app/build/outputs/apk/debug/*.apk --overwrite --allowResign --v2SigningEnabled true --v3SigningEnabled true
 
-      - name: Upload Signed APK
+      - name: Upload Reliable APK
         uses: actions/upload-artifact@v4
         with:
-          name: HomeStore-App-Signed
+          name: HomeStore-App-Final
+          # سنرفع الملف الذي تمت معالجته وتوقيعه بنجاح
           path: app/build/outputs/apk/debug/*-aligned-debugSigned.apk
