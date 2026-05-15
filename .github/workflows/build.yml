@@ -29,5 +29,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: HomeStore-App-Final
-          # سنرفع الملف الذي تمت معالجته وتوقيعه بنجاح
-          path: app/build/outputs/apk/debug/*-aligned-debugSigned.apk
+          # هنا التغيير: سنطلب من الأداة البحث عن أي ملف APK في المجلد وفروعه
+          path: app/build/outputs/apk/debug/**/*.apk
