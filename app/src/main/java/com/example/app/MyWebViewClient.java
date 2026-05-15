@@ -1,4 +1,4 @@
-package com.example.app;
+package com/marcidia/homestore;
 
 import android.content.Intent;
 import android.net.Uri;
