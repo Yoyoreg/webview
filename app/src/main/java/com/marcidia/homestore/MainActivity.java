@@ -1,6 +1,5 @@
 package com.marcidia.homestore;
 
-import com.marcidia.homestore.R;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.os.Bundle;
