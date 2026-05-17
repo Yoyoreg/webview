@@ -1,4 +1,4 @@
-package com.marcidia.homestore;
+package com.marcidia.mytcion;
 
 import android.content.Intent;
 import android.net.Uri;
