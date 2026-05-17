@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مستكشف أخطاء الاتصال الذكي 🔍</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            padding: 20px;
+            margin: 0;
+        }
+        h1 { color: #00bcd4; font-size: 20px; text-align: center; }
+        .card {
+            background-color: #2d2d2d;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 5px solid #666;
+        }
+        .status {
+            font-weight: bold;
+            float: left;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+        .loading { background-color: #ff9800; color: black; }
+        .success { background-color: #4caf50; color: white; }
+        .failed { background-color: #f44336; color: white; }
+        .log-box {
+            background-color: #000;
+            color: #00ff00;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 5px;
+            height: 120px;
+            overflow-y: auto;
+            font-size: 11px;
+            white-space: pre-wrap;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #00bcd4;
+            border: none;
+            color: black;
+            font-weight: bold;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover { background-color: #0097a7; }
+        .clear { clear: both; }
+    </style>
+</head>
+<body>
+
+    <h1>🔍 فحص شبكة التطبيق وتشخيص الأعطال</h1>
+    <p style="text-align: center; font-size: 13px; color: #aaa;">اضغط على الزر أدناه لبدء اختبار قنوات الاتصال الحية داخل أندرويد.</p>
+
+    <div class="card" id="test-navigator">
+        <span class="status loading" id="status-nav">جاري الفحص...</span>
+        <strong>1. اختبار حالة متصفح النظام (Navigator)</strong>
+        <div class="clear"></div>
+        <p style="font-size: 12px; color: #ccc;">يقيس ما إذا كان نظام أندرويد يرى أن التطبيق يمتلك حق الوصول للشبكة أم لا.</p>
+    </div>
+
+    <div class="card">
+        <span class="status loading" id="status-https">في الانتظار...</span>
+        <strong>2. طلب HTTPS آمن خارجي (HTTPs Fetch)</strong>
+        <div class="clear"></div>
+        <p style="font-size: 12px; color: #ccc;">يتصل بـ API خارجي آمن مشفر للتأكد من عمل الصلاحيات وشهادات الـ SSL.</p>
+        <div class="log-box" id="log-https">سجل العمليات فارغ...</div>
+    </div>
+
+    <div class="card">
+        <span class="status loading" id="status-http">في الانتظار...</span>
+        <strong>3. طلب HTTP غير مشفر (Cleartext HTTP)</strong>
+        <div class="clear"></div>
+        <p style="font-size: 12px; color: #ccc;">يتصل برابط غير مشفر للتأكد مما إذا كان أندرويد يحظر بروتوكولات HTTP العادية.</p>
+        <div class="log-box" id="log-http">سجل العمليات فارغ...</div>
+    </div>
+
+    <button onclick="runDiagnostics()">🚀 إطلاق فحص الشبكة الشامل</button>
+
+    <script>
+        function logMessage(boxId, message) {
+            const box = document.getElementById(boxId);
+            box.innerText += "\n" + message;
+            box.scrollTop = box.scrollHeight;
+        }
+
+        async function runDiagnostics() {
+            // --- 1. فحص الـ Navigator ---
+            const statusNav = document.getElementById("status-nav");
+            if (navigator.onLine) {
+                statusNav.className = "status success";
+                statusNav.innerText = "متصل (Online)";
+            } else {
+                statusNav.className = "status failed";
+                statusNav.innerText = "مقطوع (Offline)";
+            }
+
+            // --- 2. فحص طلب HTTPS آمن ---
+            const statusHttps = document.getElementById("status-https");
+            const logHttps = document.getElementById("log-https");
+            statusHttps.className = "status loading";
+            statusHttps.innerText = "جاري الاتصال...";
+            logHttps.innerText = "[بدء طلب HTTPS إلى api.ipify.org لطلب الـ IP]...";
+
+            try {
+                const response = await fetch('https://api.ipify.org?format=json', { method: 'GET', timeout: 5000 });
+                if (response.ok) {
+                    const data = await response.json();
+                    statusHttps.className = "status success";
+                    statusHttps.innerText = "ناجح دليلاً";
+                    logMessage("log-https", "✅ تم الاتصال بنجاح واستقبال البيانات سحابياً!");
+                    logMessage("log-https", "عنوان الـ IP المكتشف للتطبيق: " + data.ip);
+                } else {
+                    throw new Error("استجابة السيرفر غير سليمة: " + response.status);
+                }
+            } catch (err) {
+                statusHttps.className = "status failed";
+                statusHttps.innerText = "فشل الاتصال";
+                logMessage("log-https", "❌ فشل حرج في الاتصال بالإنترنت عبر HTTPS!");
+                logMessage("log-https", "السبب التقني: " + err.message);
+                logMessage("log-https", "💡 التفسير: إما أن صلاحية INTERNET غائبة تماماً من الـ Manifest أو الـ WebViewClient يحظر الروابط.");
+            }
+
+            // --- 3. فحص طلب HTTP غير مشفر ---
+            const statusHttp = document.getElementById("status-http");
+            const logHttp = document.getElementById("log-http");
+            statusHttp.className = "status loading";
+            statusHttp.innerText = "جاري الاتصال...";
+            logHttp.innerText = "[بدء طلب HTTP غير مشفر إلى httpbin.org]...";
+
+            try {
+                const response = await fetch('http://httpbin.org/ip', { method: 'GET', timeout: 5000 });
+                if (response.ok) {
+                    const data = await response.json();
+                    statusHttp.className = "status success";
+                    statusHttp.innerText = "مفتوح (Cleartext OK)";
+                    logMessage("log-http", "✅ ممتاز! أندرويد يسمح بالاتصالات غير المشفرة HTTP العادية.");
+                    logMessage("log-http", "بيانات السيرفر المرجعية: " + JSON.stringify(data));
+                } else {
+                    throw new Error("استجابة غير صالحة: " + response.status);
+                }
+            } catch (err) {
+                statusHttp.className = "status failed";
+                statusHttp.innerText = "محظور (Blocked)";
+                logMessage("log-http", "❌ تم حظر طلب الـ HTTP العادي!");
+                logMessage("log-http", "السبب التقني: " + err.message);
+                logMessage("log-http", "💡 التفسير: خاصية usesCleartextTraffic غائبة من ملف Manifest، أو أن السيرفر المستهدف يرفض الطلبات غير المحمية.");
+            }
+        }
+
+        // تشغيل الفحص تلقائياً عند فتح الصفحة لتسهيل رصد الأخطاء فوراً
+        window.onload = function() {
+            setTimeout(runDiagnostics, 1000);
+        };
+    </script>
+</body>
+</html>
