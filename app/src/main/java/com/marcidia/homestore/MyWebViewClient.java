@@ -1,6 +1,5 @@
 package com.marcidia.homestore;
 
-import com.marcidia.homestore.R;
 import android.content.Intent;
 import android.net.Uri;
 import android.webkit.WebView;
