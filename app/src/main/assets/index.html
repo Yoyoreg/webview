@@ -2,138 +2,67 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MyCoin Wallet Pro</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MyCoin - ɱ</title>
     <style>
-        :root { --c1: #1e293b; --c2: #334155; --bg: #f1f5f9; }
-        body { font-family: sans-serif; background: var(--bg); margin: 0; padding: 10px; display: flex; justify-content: center; touch-action: manipulation; }
-        .card { background: white; width: 100%; max-width: 450px; padding: 20px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); min-height: 92vh; display: flex; flex-direction: column; position: relative; overflow: hidden; }
-        .primary-gradient { background: linear-gradient(135deg, var(--c1), var(--c2)) !important; }
-        button { background: linear-gradient(135deg, var(--c1), var(--c2)); color: white; border: none; padding: 14px; border-radius: 12px; font-weight: bold; cursor: pointer; margin: 8px 0; width: 100%; transition: 0.3s; }
-        input, select { width: 100%; padding: 14px; margin: 8px 0; border-radius: 12px; border: 1px solid #cbd5e1; font-size: 16px; box-sizing: border-box; }
-        .nav-bar { display: flex; gap: 8px; margin-top: auto; border-top: 1px solid #eee; padding-top: 12px; }
-        .nav-btn { flex: 1; padding: 12px 2px; font-size: 11px; background: #f8fafc; color: #1e293b; border-radius: 12px; border: 1px solid #e2e8f0; }
-        .nav-btn.active { background: var(--c1); color: white; border-color: var(--c1); }
-        .balance-box { color: white; padding: 25px; border-radius: 20px; text-align: center; margin-bottom: 15px; }
-        .hidden { display: none !important; }
-        #reader { width: 100% !important; border-radius: 15px; overflow: hidden; background: #000; }
-        #qrcode { background: white; padding: 15px; display: flex; justify-content: center; }
-        .setting-section { background: #f8fafc; padding: 15px; border-radius: 15px; border: 1px solid #e2e8f0; margin-top: 10px; }
-        .color-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-        .color-row input { width: 50px; height: 35px; padding: 0; border: none; background: none; cursor: pointer; }
-        /* جدول بيانات البنك */
-        .admin-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; background: white; border-radius: 10px; overflow: hidden; }
-        .admin-table th, .admin-table td { padding: 8px; border: 1px solid #eee; text-align: right; }
-        .admin-table th { background: #f1f5f9; }
+        :root { --primary: #2563eb; --bg: #f8fafc; --danger: #ef4444; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .card { background: white; width: 100%; max-width: 450px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+        h2, h3 { color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-top: 0; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 10px; border: 1px solid #cbd5e1; box-sizing: border-box; font-size: 16px; }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:active { transform: scale(0.98); }
+        .hidden { display: none; }
+        .balance-card { background: #eff6ff; padding: 15px; border-radius: 12px; border-right: 5px solid var(--primary); margin: 15px 0; }
+        .amount { font-size: 28px; font-weight: 800; color: #1e40af; }
+        .user-row { display: flex; justify-content: space-between; padding: 8px; border-bottom: 1px solid #f1f5f9; font-size: 14px; }
+        .error { color: var(--danger); font-size: 13px; font-weight: bold; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-<div class="card">
-    <div id="loginPage">
-        <h2 style="text-align: center;">🏦 MyCoin Wallet</h2>
-        <input type="text" id="loginName" placeholder="اسم المستخدم">
-        <input type="password" id="loginPass" placeholder="كلمة المرور">
-        <button onclick="handleLogin()">دخول</button>
-    </div>
-
-    <div id="mainPage" class="hidden">
-        <div id="tab-account" class="tab-content">
-            <div class="balance-box primary-gradient">
-                <small>الرصيد الحالي</small>
-                <div style="font-size: 38px; font-weight: bold;"><span id="uBalance">0</span> ɱ</div>
-                <div id="uLoanBox" class="hidden" style="margin-top:10px; font-size:12px; background:rgba(0,0,0,0.2); padding:5px; border-radius:8px;">
-                    الدين: <span id="uLoan">0</span> ɱ
-                </div>
-            </div>
-
-            <div class="setting-section">
-                <div class="color-row">
-                    <span style="font-size:12px; font-weight:bold;">تخصيص الألوان:</span>
-                    <div style="display:flex; gap:5px;">
-                        <input type="color" id="cInput1" onchange="updateColors()">
-                        <input type="color" id="cInput2" onchange="updateColors()">
-                    </div>
-                </div>
-                <button onclick="toggleDiv('pwBox')" style="font-size:11px; padding:8px;">🔑 إعدادات الأمان</button>
-                <div id="pwBox" class="hidden">
-                    <input type="password" id="oldP" placeholder="كلمة المرور الحالية">
-                    <input type="password" id="newP" placeholder="كلمة المرور الجديدة">
-                    <button onclick="updatePassword()">تحديث</button>
-                </div>
-            </div>
-
-            <div id="adminPanel" class="hidden">
-                <div class="setting-section">
-                    <h6>إدارة البنك والقروض</h6>
-                    <select id="admTarget"></select>
-                    <input type="number" id="admAmt" placeholder="المبلغ">
-                    <div style="display:flex; gap:5px;">
-                        <button onclick="manageLoan('add')" style="flex:1">قرض</button>
-                        <button onclick="manageLoan('clear')" style="flex:1; background:#64748b">تسوية</button>
-                    </div>
-                </div>
-
-                <div class="setting-section" style="overflow-x: auto;">
-                    <h6 style="margin-bottom: 8px;">📋 بيانات المستخدمين</h6>
-                    <table class="admin-table">
-                        <thead>
-                            <tr>
-                                <th>الاسم</th>
-                                <th>الرصيد</th>
-                                <th>الدين</th>
-                            </tr>
-                        </thead>
-                        <tbody id="usersDataTable"></tbody>
-                    </table>
-                </div>
-            </div>
-
-            <button onclick="logout()" style="background:none; color:#94a3b8; font-size:11px; border:none; text-decoration:underline; margin-top:20px;">تسجيل الخروج</button>
-        </div>
-
-        <div id="tab-friends" class="tab-content hidden">
-            <h4>إرسال للأصدقاء</h4>
-            <select id="friendList"></select>
-            <input type="number" id="sendAmt" placeholder="المبلغ">
-            <button onclick="transfer()">تحويل الرصيد</button>
-        </div>
-
-        <div id="tab-merchant" class="tab-content hidden">
-            <h4>بوابة التاجر</h4>
-            <input type="number" id="mPrice" placeholder="حدد السعر" oninput="genQR()">
-            <div id="qrcode"></div>
-            <p id="qrTxt" style="text-align:center; font-weight:bold;"></p>
-        </div>
-
-        <div id="tab-scanner" class="tab-content hidden">
-            <h4>📷 مسح رمز الدفع</h4>
-            <div id="reader"></div>
-        </div>
-
-        <div class="nav-bar">
-            <button class="nav-btn active" onclick="switchTab('account', this)">👤 حسابي</button>
-            <button class="nav-btn" onclick="switchTab('scanner', this)">📷 مسح</button>
-            <button class="nav-btn" onclick="switchTab('friends', this)">👥 الأصدقاء</button>
-            <button class="nav-btn" onclick="switchTab('merchant', this)">🛒 التاجر</button>
-        </div>
-    </div>
-
-    <div id="payConfirm" class="hidden" style="position:fixed; top:0; left:0; width:100%; height:100%; background:white; z-index:9999; padding:25px;">
-        <h2 style="text-align:center;">تأكيد الدفع</h2>
-        <div style="background:#f8fafc; padding:30px; border-radius:20px; border:2px solid #eee; text-align:center; margin-top:40px;">
-            <p>إرسال إلى: <br><b id="qName" style="font-size:24px;">---</b></p>
-            <div style="font-size:35px; font-weight:bold; color:var(--c1); margin-top:20px;"><span id="qAmt">0</span> ɱ</div>
-        </div>
-        <button onclick="confirmPay()" style="margin-top:40px;">✅ موافق، دفع الآن</button>
-        <button onclick="closePay()" style="background:#94a3b8; margin-top:10px;">إلغاء</button>
-    </div>
+<div id="loginPage" class="card">
+    <h2>تسجيل الدخول</h2>
+    <input type="text" id="loginName" placeholder="الاسم الشخصي (مثلاً: douaa)">
+    <input type="password" id="loginPass" placeholder="كلمة المرور">
+    <div id="loginError" class="error"></div>
+    <button onclick="handleLogin()">دخول آمن</button>
 </div>
+
+<div id="mainPage" class="card hidden">
+    <h2 id="welcomeName">مرحباً</h2>
+    
+    <div id="userSection">
+        <div class="balance-card">
+            رصيدك الحالي: <br>
+            <span id="myBalance" class="amount">0</span> <span style="font-size: 20px; color: #1e40af;">ɱ</span>
+        </div>
+    </div>
+
+    <div id="adminSection" class="hidden">
+        <h3>مراقبة الحسابات (لوحة البائع)</h3>
+        <div id="usersList" style="margin-bottom: 20px; max-height: 200px; overflow-y: auto; border: 1px solid #eee; padding: 5px;"></div>
+    </div>
+
+    <hr>
+    <h3>إرسال مبالغ</h3>
+    <select id="receiverSelect"></select>
+    <input type="number" id="sendAmount" placeholder="المبلغ بـ ɱ">
+    <button onclick="processTransfer()" id="btnSend">تأكيد الإرسال</button>
+
+    <hr>
+    <button onclick="togglePassBox()" style="background: #64748b; font-size: 13px;">إعدادات كلمة المرور</button>
+    <div id="passBox" class="hidden" style="background: #fff1f2; padding: 15px; border-radius: 12px; margin-top: 10px;">
+        <input type="password" id="oldPass" placeholder="الكلمة القديمة">
+        <input type="password" id="newPass" placeholder="الكلمة الجديدة">
+        <button onclick="updatePassword()" style="background: var(--danger);">تحديث</button>
+    </div>
+
+    <button onclick="location.reload()" style="background:#000; margin-top: 20px; opacity: 0.7;">خروج</button>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
 <script>
     const firebaseConfig = {
@@ -145,138 +74,101 @@
         messagingSenderId: "653110857661",
         appId: "1:653110857661:web:1db67f0d3d0bcc7af98cd4"
     };
+
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const BOT_TOKEN = "8752761556:AAEVdlQafOqMoZwFAcAk_Cv8VMhg6-75aGc";
 
-    let loggedInId = "", cachedUser = null, qrScanner = null, quickPayData = null;
-    const b64 = (s) => s ? btoa(s) : "";
+    let loggedInId = ""; // سيخزن user0 أو user1 داخلياً
+    let cachedUser = null;
 
-    window.onload = async () => {
-        const c1 = localStorage.getItem('mc_c1') || "#1e293b", c2 = localStorage.getItem('mc_c2') || "#334155";
-        applyColors(c1, c2); document.getElementById('cInput1').value = c1; document.getElementById('cInput2').value = c2;
-        const sid = localStorage.getItem('mc_id'), sp = localStorage.getItem('mc_p');
-        if (sid) {
-            const s = await db.ref(`users/${sid}`).once('value');
-            if (s.exists() && (s.val().pass === sp || (!s.val().pass && !sp))) {
-                loggedInId = sid; runApp();
-            }
-        }
-    };
-
-    function applyColors(c1, c2) { document.documentElement.style.setProperty('--c1', c1); document.documentElement.style.setProperty('--c2', c2); }
-    function updateColors() {
-        const c1 = document.getElementById('cInput1').value, c2 = document.getElementById('cInput2').value;
-        applyColors(c1, c2); localStorage.setItem('mc_c1', c1); localStorage.setItem('mc_c2', c2);
-    }
-
-    async function updatePassword() {
-        const old = b64(document.getElementById('oldP').value), newP = b64(document.getElementById('newP').value);
-        if (old !== (cachedUser.pass || "")) return alert("❌ كلمة المرور الحالية خطأ");
-        await db.ref(`users/${loggedInId}`).update({ pass: newP });
-        localStorage.setItem('mc_p', newP); alert("✅ تم التحديث"); toggleDiv('pwBox');
-    }
-
+    // --- تسجيل الدخول بالاسم الشخصي ---
     async function handleLogin() {
-        const name = document.getElementById('loginName').value.trim(), encP = b64(document.getElementById('loginPass').value);
-        const snap = await db.ref('users').orderByChild('name').equalTo(name).once('value');
-        if (snap.exists()) {
-            const id = Object.keys(snap.val())[0];
-            if ((snap.val()[id].pass || "") === encP) {
-                localStorage.setItem('mc_id', id); localStorage.setItem('mc_p', encP); location.reload();
-            } else alert("كلمة المرور خطأ");
-        } else alert("المستخدم غير موجود");
+        const inputName = document.getElementById('loginName').value.trim();
+        const pass = document.getElementById('loginPass').value;
+        const err = document.getElementById('loginError');
+
+        try {
+            const snapshot = await db.ref('users').orderByChild('name').equalTo(inputName).get();
+            
+            if (snapshot.exists()) {
+                const data = snapshot.val();
+                const id = Object.keys(data)[0]; 
+                const user = data[id];
+
+                if (user.pass === pass) {
+                    loggedInId = id;
+                    cachedUser = user;
+                    startApp();
+                } else {
+                    err.innerText = "كلمة المرور خاطئة!";
+                }
+            } else {
+                err.innerText = "هذا الاسم غير مسجل!";
+            }
+        } catch (e) { err.innerText = "خطأ في الاتصال!"; }
     }
 
-    function runApp() {
+    function startApp() {
         document.getElementById('loginPage').classList.add('hidden');
         document.getElementById('mainPage').classList.remove('hidden');
-        db.ref('users').on('value', s => {
-            const data = s.val(); cachedUser = data[loggedInId];
-            refreshUI(data);
+
+        db.ref('users').on('value', (snap) => {
+            const users = snap.val();
+            const select = document.getElementById('receiverSelect');
+            const list = document.getElementById('usersList');
+            
+            select.innerHTML = "";
+            list.innerHTML = "";
+
+            for (let id in users) {
+                if (id !== loggedInId) {
+                    select.add(new Option(users[id].name, id));
+                }
+                if (loggedInId === 'user0') {
+                    list.innerHTML += `<div class="user-row"><span>${users[id].name}</span> <b>${users[id].balance} ɱ</b></div>`;
+                }
+            }
+
+            cachedUser = users[loggedInId];
+            document.getElementById('welcomeName').innerText = "مرحباً: " + cachedUser.name;
+            document.getElementById('myBalance').innerText = (loggedInId === 'user0') ? "∞" : cachedUser.balance;
+            
+            if (loggedInId === 'user0') document.getElementById('adminSection').classList.remove('hidden');
         });
     }
 
-    function refreshUI(users) {
-        const fS = document.getElementById('friendList'), aS = document.getElementById('admTarget'), table = document.getElementById('usersDataTable');
-        fS.innerHTML = ""; aS.innerHTML = ""; table.innerHTML = "";
-        for (let id in users) {
-            if (id === loggedInId) continue;
-            if (loggedInId === 'user0') aS.add(new Option(users[id].name, id));
-            fS.add(new Option(users[id].name + (id==='user0'?" (البنك)":""), id));
-            
-            // إضافة البيانات للجدول (للبنك فقط)
-            if (loggedInId === 'user0') {
-                const row = `<tr><td>${users[id].name}</td><td>${users[id].balance || 0}</td><td>${users[id].loan || 0}</td></tr>`;
-                table.innerHTML += row;
-            }
-        }
-        document.getElementById('uBalance').innerText = (loggedInId==='user0')?"∞": (cachedUser.balance || 0);
-        document.getElementById('uLoan').innerText = cachedUser.loan || 0;
-        if (cachedUser.loan > 0) document.getElementById('uLoanBox').classList.remove('hidden');
-        else document.getElementById('uLoanBox').classList.add('hidden');
-        if (loggedInId === 'user0') document.getElementById('adminPanel').classList.remove('hidden');
-    }
+    async function processTransfer() {
+        const toId = document.getElementById('receiverSelect').value;
+        const amount = parseFloat(document.getElementById('sendAmount').value);
 
-    async function switchTab(tid, btn) {
-        if (qrScanner && tid !== 'scanner') await stopScan();
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-        document.getElementById('tab-' + tid).classList.remove('hidden');
-        btn.classList.add('active'); if (tid === 'scanner') startScan();
-    }
+        if (!amount || amount <= 0) return alert("أدخل مبلغاً صحيحاً!");
 
-    async function startScan() {
-        if (!qrScanner) qrScanner = new Html5Qrcode("reader");
         try {
-            await qrScanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 250 }, (txt) => {
-                let raw = txt.includes('msg=') ? decodeURIComponent(txt.split('msg=')[1]) : txt;
-                const p = raw.split('_');
-                if (p.length >= 3) { quickPayData = { amt: parseFloat(p[0]), name: p[1], id: p[2] }; stopScan(); showConfirm(); }
-            });
-        } catch (e) { alert("الكاميرا لا تعمل"); }
-    }
-
-    async function stopScan() { if (qrScanner && qrScanner.isScanning) await qrScanner.stop(); }
-    function showConfirm() { document.getElementById('payConfirm').classList.remove('hidden'); document.getElementById('qName').innerText = quickPayData.name; document.getElementById('qAmt').innerText = quickPayData.amt; }
-    function closePay() { document.getElementById('payConfirm').classList.add('hidden'); switchTab('account', document.querySelector('.nav-btn')); }
-    async function confirmPay() { if (quickPayData) await transfer(quickPayData.id, quickPayData.amt); closePay(); }
-
-    async function transfer(tid = null, tamt = null) {
-        const toId = tid || document.getElementById('friendList').value, amt = tamt || parseFloat(document.getElementById('sendAmt').value);
-        if (!amt || amt <= 0) return;
-        if (loggedInId !== 'user0' && amt > (cachedUser.balance || 0)) return alert("رصيدك لا يكفي");
-        const updates = {}; const rSnap = await db.ref(`users/${toId}`).once('value'); const receiver = rSnap.val();
-        if (loggedInId !== 'user0') updates[`users/${loggedInId}/balance`] = (cachedUser.balance || 0) - amt;
-        if (toId === 'user0') { 
-            const myLoan = cachedUser.loan || 0, paid = Math.min(amt, myLoan);
-            updates[`users/${loggedInId}/loan`] = myLoan - paid; updates[`users/${loggedInId}/balance`] = (cachedUser.balance || 0) - paid;
-        } else {
-            updates[`users/${toId}/balance`] = (receiver.balance || 0) + amt;
-            if (receiver.chatId) {
-                const msg = `💰 *إشعار استلام*\nأهلاً *${receiver.name}*، استلمت *${amt} ɱ* من *${cachedUser.name}*`;
-                fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${receiver.chatId}&text=${encodeURIComponent(msg)}&parse_mode=Markdown`);
+            const rSnap = await db.ref('users/' + toId).get();
+            if (loggedInId !== 'user0' && cachedUser.balance < amount) {
+                return alert("رصيدك لا يكفي!");
             }
-        }
-        await db.ref().update(updates); alert("✅ تمت العملية"); document.getElementById('sendAmt').value = "";
+
+            const updates = {};
+            if (loggedInId !== 'user0') updates['users/' + loggedInId + '/balance'] = cachedUser.balance - amount;
+            updates['users/' + toId + '/balance'] = rSnap.val().balance + amount;
+
+            await db.ref().update(updates);
+            alert("تم إرسال " + amount + " ɱ بنجاح!");
+            document.getElementById('sendAmount').value = "";
+        } catch (e) { alert("فشلت العملية!"); }
     }
 
-    function genQR() {
-        const amt = document.getElementById('mPrice').value, div = document.getElementById('qrcode');
-        div.innerHTML = ""; if (!amt || amt <= 0) return;
-        const payload = `${amt}_${cachedUser.name}_${loggedInId}`;
-        new QRCode(div, { text: payload, width: 200, height: 200 }); document.getElementById('qrTxt').innerText = `المبلغ: ${amt} ɱ`;
-    }
+    function togglePassBox() { document.getElementById('passBox').classList.toggle('hidden'); }
 
-    async function manageLoan(type) {
-        const id = document.getElementById('admTarget').value, amt = parseFloat(document.getElementById('admAmt').value);
-        if (!amt) return; const s = await db.ref(`users/${id}/loan`).once('value'), cur = s.val() || 0;
-        await db.ref(`users/${id}`).update({ loan: type==='add' ? cur+amt : Math.max(0, cur-amt) });
-        document.getElementById('admAmt').value = "";
+    async function updatePassword() {
+        const oldP = document.getElementById('oldPass').value;
+        const newP = document.getElementById('newPass').value;
+        if (oldP !== cachedUser.pass) return alert("القديمة خاطئة!");
+        await db.ref('users/' + loggedInId).update({ pass: newP });
+        alert("تم التحديث!");
+        togglePassBox();
     }
-
-    function toggleDiv(id) { document.getElementById(id).classList.toggle('hidden'); }
-    function logout() { localStorage.clear(); location.reload(); }
 </script>
 </body>
 </html>
