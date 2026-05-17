@@ -1,4 +1,4 @@
-package com.marcidia.mytcoin;
+package com.marcidia.homestore;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
