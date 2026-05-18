@@ -4,7 +4,7 @@ android {
     compileSdkVersion 34
 
     defaultConfig {
-        applicationId "com.marcidia.mmarket"
+        applicationId "com.marcidia.myloc"
         minSdkVersion 24
         targetSdkVersion 34
         versionCode 1
