@@ -3,283 +3,679 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Marcidia Market</title>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
-    
+    <title>MyLOC Pro | حافظة المواقع الذكية</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-
         :root {
-            --accent: #007aff;
-            --bg: #f8f9fa;
-            --card: #ffffff;
-            --text-main: #1a1a1a;
-            --text-muted: #707070;
+            --bg: #111827;
+            --card-bg: #1f2937;
+            --accent: #10b981; 
+            --accent-gradient: linear-gradient(135deg, #10b981, #059669);
+            --header-bg: rgba(31, 41, 55, 0.7);
+            --text-main: #ffffff;
+            --text-muted: #9ca3af;
+            --input-bg: #111827;
+            --border-color: #374151;
+            --star-color: #fbbf24;
+            /* ألوان شريط التمرير */
+            --sb-track: #1f2937;
+            --sb-thumb: #4b5563;
+            --sb-thumb-hover: #10b981;
         }
 
-        [data-theme="dark"] {
-            --bg: #121212; --card: #1e1e1e; --text-main: #ffffff; --text-muted: #a0a0a0;
+        [data-theme="light"] {
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --accent: #059669; 
+            --accent-gradient: linear-gradient(135deg, #059669, #047857);
+            --header-bg: rgba(255, 255, 255, 0.8);
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+            --input-bg: #f9fafb;
+            --border-color: #d1d5db;
+            /* ألوان شريط التمرير للمظهر الفاتح */
+            --sb-track: #e5e7eb;
+            --sb-thumb: #9ca3af;
+            --sb-thumb-hover: #059669;
         }
 
         body {
-            margin: 0; background-color: #e2e8f0; font-family: 'Inter', sans-serif;
-            display: flex; justify-content: center; height: 100vh; overflow: hidden;
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* 🖌️ شريط التمرير (Scrollbar) أغلظ ومتناسق مع النمط */
+        ::-webkit-scrollbar {
+            width: 10px; 
+            height: 10px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--sb-track);
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--sb-thumb);
+            border-radius: 10px;
+            border: 2px solid var(--sb-track); 
+            transition: background 0.3s;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--sb-thumb-hover); 
+        }
+
+        html {
+            scrollbar-width: auto;
+            scrollbar-color: var(--sb-thumb) var(--sb-track);
         }
 
         .app-container {
-            width: 100%; max-width: 450px; height: 100vh; background: var(--bg);
-            display: flex; flex-direction: column; position: relative;
+            width: 100%;
+            max-width: 480px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            padding: 0 15px;
+            box-sizing: border-box;
         }
 
-        header {
-            height: 65px; background: var(--card); display: flex;
-            align-items: center; justify-content: space-between; padding: 0 20px;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
+        /* تصميم الرأس الاحترافي */
+        .app-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 15px;
+            margin: 15px 0;
+            background: var(--header-bg);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         }
 
-        main { flex: 1; overflow-y: auto; padding: 20px; padding-bottom: 90px; }
-
-        .page { display: none; animation: fadeIn 0.2s ease; }
-        .page.active { display: block; }
-
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* الأزرار والمدخلات */
-        input[type="text"], input[type="password"] {
-            width: 100%; padding: 15px; margin-bottom: 15px; border-radius: 12px;
-            border: 1px solid #ddd; background: var(--card); color: var(--text-main); box-sizing: border-box;
-        }
-        .btn-main {
-            width: 100%; padding: 15px; background: var(--accent); color: white;
-            border: none; border-radius: 12px; font-weight: 700; cursor: pointer;
+        .header-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        /* شريط التنقل */
-        footer {
-            position: absolute; bottom: 15px; left: 5%; width: 90%; height: 65px;
-            background: var(--card); border-radius: 20px; display: none;
-            justify-content: space-around; align-items: center; box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        /* حاوية الأيقونة نقية وبدون إطار */
+        .header-logo .icon-box {
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: none;
+            border: none;
+            padding: 0;
+            margin: 0;
         }
-        .nav-item { display: flex; flex-direction: column; align-items: center; cursor: pointer; color: var(--text-muted); }
-        .nav-item.active { color: var(--accent); }
 
-        /* زر اللون البسيط */
-        .color-picker-container {
-            display: flex; align-items: center; gap: 10px; 
-            background: var(--card); padding: 15px; border-radius: 15px; margin-top: 20px;
+        /* عرض صورة الـ SVG بشكل طبيعي بالكامل */
+        .header-logo .icon-box .svg-icon {
+            width: 28px;
+            height: 28px;
+            display: block;
+            object-fit: contain;
         }
-        .color-box {
-            width: 40px; height: 40px; border-radius: 8px; border: 2px solid #ddd;
-            overflow: hidden; position: relative;
+
+        h1 {
+            font-size: 20px;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+            font-weight: 800;
+            letter-spacing: 0.5px;
         }
-        .color-box input {
-            position: absolute; top: -5px; left: -5px; width: 60px; height: 60px; cursor: pointer;
+
+        .theme-toggle-btn {
+            background-color: var(--bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: 0.2s ease;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
         }
+
+        .theme-toggle-btn:active {
+            transform: scale(0.95);
+        }
+
+        .controls-box {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background-color: var(--bg);
+            padding: 10px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            transition: background-color 0.3s;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 14px;
+            border-radius: 14px;
+            border: 2px solid var(--border-color);
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            font-size: 15px;
+            box-sizing: border-box;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+        }
+
+        .filter-select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            border: 2px solid var(--border-color);
+            background-color: var(--card-bg);
+            color: var(--text-main);
+            font-size: 14px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .locations-list {
+            flex: 1;
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding-bottom: 90px; 
+        }
+
+        .location-card {
+            background-color: var(--card-bg);
+            padding: 16px;
+            border-radius: 20px;
+            border-right: 6px solid var(--accent);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-top: 1px solid rgba(255,255,255,0.03);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .place-name {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .distance-badge {
+            background-color: var(--accent);
+            color: white;
+            padding: 3px 8px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-top: 6px;
+            display: inline-block;
+        }
+
+        .place-desc {
+            font-size: 14px;
+            color: var(--text-muted);
+            margin: 10px 0;
+            line-height: 1.5;
+        }
+
+        .stars-view {
+            color: var(--star-color);
+            font-size: 20px;
+            margin: 6px 0;
+            display: inline-flex;
+            gap: 2px;
+            direction: ltr;
+        }
+
+        .star-interactive {
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+
+        .star-interactive:hover {
+            transform: scale(1.2);
+        }
+
+        .tags-container {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .tag {
+            background-color: rgba(16, 185, 129, 0.12);
+            color: var(--accent);
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+
+        .card-actions {
+            margin-top: 14px;
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-action {
+            flex: 1;
+            padding: 11px 6px;
+            font-size: 12px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            transition: 0.2s;
+        }
+
+        .btn-action:active { transform: scale(0.97); }
+        .btn-go { background-color: #2563eb; color: white; }
+        .btn-copy { background-color: #8b5cf6; color: white; }
+        .btn-delete { background-color: #dc2626; color: white; }
+
+        .btn-float {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 440px;
+            background: var(--accent-gradient);
+            color: white;
+            padding: 15px;
+            border: none;
+            border-radius: 16px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+            text-align: center;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.6);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            width: 95%; max-width: 400px;
+            padding: 25px; border-radius: 24px;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+        }
+
+        .modal-content h3 { margin-top: 0; color: var(--accent); font-weight: 800; }
+
+        .form-group input, .form-group textarea {
+            width: 100%; padding: 12px; margin: 6px 0;
+            border-radius: 10px; border: 1px solid var(--border-color);
+            background-color: var(--input-bg); 
+            color: var(--text-main);
+            font-size: 14px; box-sizing: border-box;
+            outline: none;
+        }
+
+        .rating-input-container {
+            margin: 12px 0;
+            text-align: center;
+        }
+        .rating-input-container label {
+            font-size: 14px;
+            color: var(--text-muted);
+            display: block;
+            margin-bottom: 5px;
+        }
+        .stars-rating {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            direction: ltr;
+        }
+        .star-clickable {
+            font-size: 32px;
+            cursor: pointer;
+            color: #4b5563;
+            transition: transform 0.1s;
+        }
+        .star-clickable.active {
+            color: var(--star-color);
+        }
+
+        .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        .btn-modal { flex: 1; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; }
+        .btn-save { background: var(--accent-gradient); color: white; }
+        .btn-cancel { background-color: #6b7280; color: white; }
+
+        .hidden { display: none !important; }
+        .no-data { text-align: center; color: var(--text-muted); margin-top: 40px; font-size: 14px; }
     </style>
 </head>
-<body data-theme="light">
+<body>
 
 <div class="app-container">
-    <header>
-        <div onclick="toggleDarkMode()" id="theme-icon" style="cursor:pointer">🌙</div>
-        <div style="display:flex; align-items:center; gap:8px">
-            <img src="i.svg" style="width:25px" onerror="this.src='https://cdn-icons-png.flaticon.com/512/665/665049.png'">
-            <span style="font-weight:900; color:var(--text-main)">MMarket</span>
-        </div>
-        <div style="width:20px"></div>
-    </header>
-
-    <main id="content-area">
-        <div id="login-page" class="page active">
-            <div style="text-align: center; margin-top: 40px;">
-                <h2 style="color:var(--text-main)">تسجيل الدخول</h2>
-                <input type="text" id="loginName" placeholder="اسم المستخدم">
-                <input type="password" id="loginPass" placeholder="كلمة المرور">
-                <button class="btn-main" onclick="handleLogin()">دخول</button>
+    <div class="app-header">
+        <div class="header-logo">
+            <div class="icon-box">
+                <img src="h.svg" alt="" class="svg-icon">
             </div>
+            <h1>MyLOC Pro</h1>
         </div>
+        <button class="theme-toggle-btn" onclick="toggleTheme()" id="themeBtn">🌙 مظهر ليلي</button>
+    </div>
+    
+    <div class="controls-box">
+        <input type="text" id="searchInput" class="search-input" placeholder="ابحث بالاسم، الملاحظات، أو الكلمات..." oninput="processFilterAndSearch()">
+        <select id="filterSelect" class="filter-select" onchange="processFilterAndSearch()">
+            <option value="default">الترتيب الافتراضي (الأحدث)</option>
+            <option value="distance">📍 الأقرب مسافة إليّ</option>
+            <option value="rating">⭐ الأعلى تقييماً</option>
+        </select>
+    </div>
 
-        <div id="user-store-page" class="page">
-            <h3 style="color:var(--text-main)"> المتجر</h3>
-            <div id="user-store-content">جاري التحميل...</div>
-        </div>
+    <div class="locations-list" id="locationsList"></div>
 
-        <div id="merchant-page" class="page">
-            <h3 style="color:var(--text-main)">لوحة التحكم</h3>
-            <div id="merchant-content">جاري التحميل...</div>
-        </div>
-
-        <div id="settings-page" class="page">
-            <div style="background:var(--accent); color:white; padding:20px; border-radius:15px; text-align:center">
-                <small>رصيدك الحالي</small>
-                <div style="font-size:25px; font-weight:900"><span id="u-balance">0</span> ɱ</div>
-            </div>
-            
-            <div class="color-picker-container">
-                <div class="color-box">
-                    <input type="color" onchange="updateSystemColor(this.value)">
-                </div>
-                <span style="color:var(--text-main); font-weight:700">لون النظام</span>
-            </div>
-
-            <button class="btn-main" onclick="logout()" style="background:#ff3b30; margin-top:20px">خروج</button>
-        </div>
-    </main>
-
-    <footer id="main-nav">
-        <div class="nav-item active" onclick="switchTab('user-store-page', this)"><b>تصفح</b></div>
-        <div class="nav-item" onclick="switchTab('merchant-page', this)"><b>متجري</b></div>
-        <div class="nav-item" onclick="switchTab('settings-page', this)"><b>حسابي</b></div>
-    </footer>
+    <button class="btn-float" onclick="openModal()">➕ حفظ موقع جديد</button>
 </div>
-<script src="merchant.js"></script>
-<script src="user_store.js"></script>
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyAlwI3fR5Gt7Wu8xIuBJzcUBQGv_WInzdY",
-        databaseURL: "https://mycoin-f84d8-default-rtdb.firebaseio.com",
-        projectId: "mycoin-f84d8"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
 
-    // حل مشكلة استدعاء النوافذ (تحميل المحتوى داخلياً إذا فشل الملف الخارجي)
-    async function loadPageContent(id, fileName, fallbackHtml) {
-        try {
-            const res = await fetch(fileName);
-            if(res.ok) {
-                document.getElementById(id).innerHTML = await res.text();
-            } else {
-                document.getElementById(id).innerHTML = fallbackHtml;
-            }
-        } catch(e) {
-            document.getElementById(id).innerHTML = fallbackHtml;
-        }
-    }
-
-    async function handleLogin() {
-        const name = document.getElementById('loginName').value;
-        const pass = btoa(document.getElementById('loginPass').value);
-        const snap = await db.ref('users').orderByChild('name').equalTo(name).once('value');
-        if (snap.exists()) {
-            const id = Object.keys(snap.val())[0];
-            if (snap.val()[id].pass === pass) {
-                localStorage.setItem('market_user_id', id);
-                enterApp();
-            } else alert("كلمة المرور خطأ");
-        } else alert("غير موجود");
-    }
-
-
-function enterApp() {
-    // 1. إخفاء صفحات تسجيل الدخول
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById('main-nav').style.display = 'flex';
-
-    // 2. استدعاء واجهة "المشتري" (السوق العام)
-    const storePage = document.getElementById('user-store-page'); // افترضنا أن هذا هو ID صفحة السوق
-    storePage.innerHTML = UserStoreComponent.render(); // حقن الواجهة
-    UserStoreComponent.init(); // تشغيل الجلب من الفايربيس
-
-    storePage.classList.add('active');
-}
-
-// تعديل دالة التبديل لتناسب المكونات
-// تعديل دالة التبديل لتناسب المكونات وتمنع اختفاء البيانات
-// دالة التبديل الذكية للفحص واكتشاف الأخطاء وتصحيحها تلقائياً
-// دالة التبديل الشاملة والمحصنة لدعم السوق، التاجر، ونافذة الحساب
-async function switchTab(id, btn) {
-    // 1. إخفاء جميع الصفحات وتفريغ الصفحات الديناميكية فقط (المتجر والتاجر) لتجنب تعليق الذاكرة
-    document.querySelectorAll('.page').forEach(p => {
-        p.classList.remove('active');
+<div class="modal hidden" id="locationModal">
+    <div class="modal-content">
+        <h3>📍 حفظ موقع جديد</h3>
+        <div class="form-group">
+            <input type="text" id="placeName" placeholder="اسم المكان...">
+            <textarea id="placeDesc" rows="2" placeholder="وصف المكان أو ملاحظات تفصيلية..."></textarea>
+            <input type="text" id="placeTags" placeholder="كلمات مفتاحية (افصل بينها بفاصلة ,)">
+        </div>
         
-        // تفريغ فقط الصفحات الديناميكية التي تعتمد على المكونات، وتجنب تفريغ صفحة الإعدادات الثابتة
-        if (p.id === 'user-store-page' || p.id === 'merchant-page') {
-            p.innerHTML = ""; 
+        <div class="rating-input-container">
+            <label>تقييمك للمكان:</label>
+            <div class="stars-rating">
+                <span class="star-clickable" onclick="setModalRatingValue(1)" data-val="1">★</span>
+                <span class="star-clickable" onclick="setModalRatingValue(2)" data-val="2">★</span>
+                <span class="star-clickable" onclick="setModalRatingValue(3)" data-val="3">★</span>
+                <span class="star-clickable" onclick="setModalRatingValue(4)" data-val="4">★</span>
+                <span class="star-clickable" onclick="setModalRatingValue(5)" data-val="5">★</span>
+            </div>
+        </div>
+
+        <div id="gpsStatus" style="font-size: 12px; color: #2563eb; text-align: center; margin: 5px 0;"></div>
+        <div class="modal-buttons">
+            <button class="btn-modal btn-save" onclick="saveNewLocation()">💾 التقاط وحفظ</button>
+            <button class="btn-modal btn-cancel" onclick="closeModal()">إلغاء</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let savedLocations = JSON.parse(localStorage.getItem('myloc_data_v2')) || [];
+    let userCurrentCoords = null;
+    let selectedModalRating = 5; 
+
+    window.onload = () => { 
+        const activeTheme = localStorage.getItem('myloc_theme') || 'dark';
+        document.body.setAttribute('data-theme', activeTheme);
+        updateThemeButton(activeTheme);
+        requestUserLocation();
+    };
+
+    function requestUserLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    userCurrentCoords = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    processFilterAndSearch();
+                },
+                (error) => {
+                    processFilterAndSearch(); 
+                },
+                { enableHighAccuracy: true, timeout: 7000 }
+            );
+        } else {
+            processFilterAndSearch();
         }
-    });
-
-    // 2. التحقق من وجود حاوية الصفحة المستهدفة في الـ DOM وإظهارها
-    const target = document.getElementById(id);
-    if (!target) {
-        console.error(`❌ خطأ: لم يتم العثور على عنصر يحمل الـ ID: ${id}`);
-        return;
     }
-    target.classList.add('active');
 
-    // 3. تنظيف بقايا سكريبتات تشغيل الزبون المؤقتة
-    const oldRuntime = document.getElementById('script-user-runtime');
-    if (oldRuntime) oldRuntime.remove();
+    function calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; 
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c; 
+    }
 
-    // ----------------------------------------------------
-    // 4. الحالات: بناء وحقن واجهات المتجر والتاجر ديناميكياً عند طلبها
-    // ----------------------------------------------------
-    
-    // أ. حالة نافذة الزبائن (السوق العام) - يتم بناؤها وتحديثها حياً
-    if (id === 'user-store-page') {
-        if (typeof UserStoreComponent !== 'undefined') {
-            if (!window.storeDb && typeof firebase !== 'undefined') {
-                const storeConfig = {
-                    apiKey: "AIzaSyC0Hf2Xy6YICYFgMGx6QUWsZWlroFX0OYc",
-                    databaseURL: "https://mmarket-cb517-default-rtdb.firebaseio.com",
-                    projectId: "mmarket-cb517"
-                };
-                const storeApp = firebase.apps.find(app => app.name === "storeInstance") 
-                                 || firebase.initializeApp(storeConfig, "storeInstance");
-                window.storeDb = storeApp.database();
+    function setModalRatingValue(val) {
+        selectedModalRating = val;
+        const stars = document.querySelectorAll('.stars-rating .star-clickable');
+        stars.forEach(star => {
+            const starVal = parseInt(star.getAttribute('data-val'));
+            if (starVal <= val) {
+                star.classList.add('active');
+            } else {
+                star.classList.remove('active');
             }
-            target.innerHTML = UserStoreComponent.render();
-            UserStoreComponent.init();
-        }
+        });
     }
-    
-    // ب. حالة إدارة المتجر (التاجر) - يتم بناؤها وتحديثها حياً
-    else if (id === 'merchant-page') {
-        if (typeof MerchantComponent !== 'undefined') {
-            target.innerHTML = MerchantComponent.render();
-            MerchantComponent.init();
-        }
+
+    function updateCardRating(locationId, newRating) {
+        savedLocations = savedLocations.map(loc => {
+            if (loc.id === locationId) {
+                loc.rating = newRating;
+            }
+            return loc;
+        });
+        localStorage.setItem('myloc_data_v2', JSON.stringify(savedLocations));
+        processFilterAndSearch();
     }
-    
-    // ج. حالة نافذة حسابي (settings-page) 
-    // لا نقوم بحقن أي شيء هنا! المتصفح سيعرض عناصر الـ HTML الأصلية لصفحة الحساب (الرصيد، مغير الألوان، وزر الخروج) بأمان تام وثبات.
-    else if (id === 'settings-page') {
-        // جلب وتحديث رصيد المستخدم حياً من قاعدة البيانات 'db' الأساسية لعرضه في النافذة
-        const userId = localStorage.getItem('market_user_id');
-        if (userId) {
-            db.ref(`users/${userId}/balance`).once('value').then(snapshot => {
-                const balanceLabel = document.getElementById('u-balance');
-                if (balanceLabel) {
-                    balanceLabel.innerText = snapshot.exists() ? snapshot.val() : "0";
-                }
+
+    function processFilterAndSearch() {
+        const query = document.getElementById('searchInput').value.toLowerCase().trim();
+        const filterType = document.getElementById('filterSelect').value;
+        
+        let processingList = savedLocations.map(loc => {
+            if (userCurrentCoords) {
+                loc.distance = calculateDistance(userCurrentCoords.lat, userCurrentCoords.lng, loc.lat, loc.lng);
+            } else {
+                loc.distance = null;
+            }
+            return loc;
+        });
+
+        if (query) {
+            processingList = processingList.filter(loc => {
+                const matchName = loc.name.toLowerCase().includes(query);
+                const matchDesc = loc.desc.toLowerCase().includes(query);
+                const matchTags = loc.tags.some(tag => tag.toLowerCase().includes(query));
+                return matchName || matchDesc || matchTags;
             });
         }
+
+        if (filterType === 'distance' && userCurrentCoords) {
+            processingList.sort((a, b) => (a.distance || 99999) - (b.distance || 99999));
+        } else if (filterType === 'rating') {
+            processingList.sort((a, b) => b.rating - a.rating);
+        } else {
+            processingList.sort((a, b) => b.id - a.id);
+        }
+
+        renderLocations(processingList);
     }
 
-    // 5. تحديث الحالة البصرية لأزرار القائمة السفلية
-    document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-}
+    function renderLocations(list) {
+        const container = document.getElementById('locationsList');
+        container.innerHTML = "";
 
-    function updateSystemColor(c) {
-        document.documentElement.style.setProperty('--accent', c);
-        localStorage.setItem('market_color', c);
+        if (list.length === 0) {
+            container.innerHTML = `<div class="no-data">📭 لا توجد نتائج تطابق خيارات البحث الحالية.</div>`;
+            return;
+        }
+
+        list.forEach((loc) => {
+            const tagsHtml = loc.tags.map(t => `<span class="tag">#${t.trim()}</span>`).join('');
+            
+            let starsHtml = "";
+            for(let i = 1; i <= 5; i++) {
+                const starIcon = i <= loc.rating ? "★" : "☆";
+                starsHtml += `<span class="star-interactive" onclick="updateCardRating(${loc.id}, ${i})">${starIcon}</span>`;
+            }
+
+            let distanceHtml = "";
+            if (loc.distance !== null && loc.distance !== undefined) {
+                distanceHtml = `<div class="distance-badge">📍 يبعد عنك: ${loc.distance.toFixed(2)} كم</div>`;
+            } else {
+                distanceHtml = `<div class="distance-badge" style="background:#4b5563;">📍 المسافة غير معروفة</div>`;
+            }
+            
+            container.innerHTML += `
+                <div class="location-card">
+                    <div class="card-header">
+                        <div>
+                            <span class="place-name">${loc.name}</span>
+                            <br>${distanceHtml}
+                        </div>
+                        <small style="color:var(--text-muted); font-size:11px;">${loc.date}</small>
+                    </div>
+                    <p class="place-desc">${loc.desc}</p>
+                    <div class="stars-view">${starsHtml}</div>
+                    <div class="tags-container">${tagsHtml}</div>
+                    <div class="card-actions">
+                        <button class="btn-action btn-go" onclick="openInGoogleMaps(${loc.lat}, ${loc.lng})">🚀 انطلق الآن</button>
+                        <button class="btn-action btn-copy" onclick="copyLocationToClipboard('${loc.name}', ${loc.lat}, ${loc.lng})">📋 نسخ الموقع</button>
+                        <button class="btn-action btn-delete" onclick="deleteLocation(${loc.id})">🗑️ حذف</button>
+                    </div>
+                </div>
+            `;
+        });
     }
 
-    function toggleDarkMode() {
-        const isDark = document.body.getAttribute('data-theme') === 'dark';
-        document.body.setAttribute('data-theme', isDark ? 'light' : 'dark');
-        document.getElementById('theme-icon').innerText = isDark ? '🌙' : '☀️';
+    function openModal() {
+        document.getElementById('locationModal').classList.remove('hidden');
+        setModalRatingValue(5); 
+        document.getElementById('gpsStatus').innerText = "⏳ جاري محاولة جلب الإحداثيات الحالية للموقع الجديد...";
+        
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    userCurrentCoords = { lat: position.coords.latitude, lng: position.coords.longitude };
+                    document.getElementById('gpsStatus').innerText = "✅ تم التقاط إحداثيات الـ GPS بنجاح.";
+                },
+                (err) => { document.getElementById('gpsStatus').innerText = "⚠️ وضع تجريبي: تعذر التقاط الموقع الجغرافي تلقائياً."; },
+                { enableHighAccuracy: true }
+            );
+        }
     }
 
-    function logout() { localStorage.removeItem('market_user_id'); location.reload(); }
+    function closeModal() {
+        document.getElementById('locationModal').classList.add('hidden');
+        document.getElementById('placeName').value = "";
+        document.getElementById('placeDesc').value = "";
+        document.getElementById('placeTags').value = "";
+    }
 
-    window.onload = () => {
-        const color = localStorage.getItem('market_color') || '#007aff';
-        updateSystemColor(color);
-        if (localStorage.getItem('market_user_id')) enterApp();
-    };
+    function saveNewLocation() {
+        const name = document.getElementById('placeName').value.trim();
+        const desc = document.getElementById('placeDesc').value.trim();
+        const tagsRaw = document.getElementById('placeTags').value.trim();
+
+        if (!name) { alert("يرجى تسمية المكان!"); return; }
+
+        let targetLat = userCurrentCoords ? userCurrentCoords.lat : 34.8783; 
+        let targetLng = userCurrentCoords ? userCurrentCoords.lng : -1.3150;
+
+        const tags = tagsRaw ? tagsRaw.split(',') : [];
+
+        const newPlace = {
+            id: Date.now(),
+            name: name,
+            desc: desc || "لا توجد تفاصيل إضافية.",
+            tags: tags,
+            lat: targetLat,
+            lng: targetLng,
+            rating: selectedModalRating,
+            date: new Date().toLocaleDateString('ar-EG')
+        };
+
+        savedLocations.unshift(newPlace);
+        localStorage.setItem('myloc_data_v2', JSON.stringify(savedLocations));
+        
+        processFilterAndSearch();
+        closeModal();
+        alert("✅ تم حفظ الموقع بنجاح!");
+    }
+
+    function openInGoogleMaps(lat, lng) {
+        const url = `https://maps.google.com/?q=${lat},${lng}`;
+        window.open(url, '_blank');
+    }
+
+    function copyLocationToClipboard(name, lat, lng) {
+        const mapUrl = `https://maps.google.com/?q=${lat},${lng}`;
+        const shareText = `📍 موقع مخزن عبر تطبيق MyLOC\nالمكان: *${name}*\nرابط الخريطة المباشر:\n${mapUrl}`;
+
+        navigator.clipboard.writeText(shareText).then(() => {
+            alert("📋 تم نسخ تفاصيل ورابط خرائط جوجل لهذا الموقع بنجاح!");
+        }).catch((err) => {
+            alert(`تفضل رابط خرائط جوجل للموقع:\n${mapUrl}`);
+        });
+    }
+
+    function deleteLocation(id) {
+        if (confirm("هل تريد حذف هذا الموقع من حافظة MyLOC؟")) {
+            savedLocations = savedLocations.filter(loc => loc.id !== id);
+            localStorage.setItem('myloc_data_v2', JSON.stringify(savedLocations));
+            processFilterAndSearch();
+        }
+    }
+
+    function toggleTheme() {
+        const currentTheme = document.body.getAttribute('data-theme');
+        const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+        document.body.setAttribute('data-theme', newTheme);
+        localStorage.setItem('myloc_theme', newTheme);
+        updateThemeButton(newTheme);
+    }
+
+    function updateThemeButton(theme) {
+        const btn = document.getElementById('themeBtn');
+        btn.innerHTML = theme === 'light' ? '☀️' : '🌙';
+    }
 </script>
 </body>
 </html>
