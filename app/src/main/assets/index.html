@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+```
+<title>HTTP Diagnostic Test</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+    }
+
+    #log {
+        background: #111;
+        color: #eee;
+        padding: 15px;
+        height: 500px;
+        overflow-y: auto;
+        white-space: pre-wrap;
+        font-family: Consolas, monospace;
+        font-size: 14px;
+    }
+
+    .stats {
+        margin-bottom: 15px;
+        line-height: 1.8;
+    }
+
+    button {
+        padding: 10px 20px;
+        margin-right: 5px;
+        cursor: pointer;
+    }
+</style>
+```
+
+</head>
+
+<body>
+
+<h2>اختبار HTTP التشخيصي</h2>
+
+<div class="stats">
+    المرسلة: <b id="sent">0</b><br>
+    الناجحة: <b id="success">0</b><br>
+    الأخطاء: <b id="errors">0</b><br>
+    آخر زمن استجابة: <b id="time">---</b>
+</div>
+
+<button onclick="startTest()">▶ بدء الاختبار</button> <button onclick="stopTest()">⏹ إيقاف</button> <button onclick="clearLog()">🧹 مسح السجل</button>
+
+<br><br>
+
+<div id="log"></div>
+
+<script>
+
+const URL =
+    'http://192.168.8.103:8080/?msg=[156624,"map"]';
+
+const INTERVAL = 300;
+
+let running = false;
+
+let sent = 0;
+let success = 0;
+let errors = 0;
+
+const logElement = document.getElementById("log");
+
+
+function log(message) {
+
+    const now = new Date();
+
+    const time =
+        now.toLocaleTimeString() + "." +
+        String(now.getMilliseconds()).padStart(3, "0");
+
+    logElement.textContent +=
+        `[${time}] ${message}\n`;
+
+    logElement.scrollTop =
+        logElement.scrollHeight;
+
+    console.log(message);
+}
+
+
+function sleep(ms) {
+
+    return new Promise(resolve =>
+        setTimeout(resolve, ms)
+    );
+}
+
+
+async function sendRequest() {
+
+    sent++;
+
+    document.getElementById("sent").textContent =
+        sent;
+
+    const requestNumber = sent;
+
+    const startTime = performance.now();
+
+    log(
+        `\n🔵 [${requestNumber}] إرسال الطلب...`
+    );
+
+    log(
+        `   🎯 ${URL}`
+    );
+
+    try {
+
+        const response = await fetch(URL, {
+
+            method: "GET",
+
+            // منع الاعتماد على cache
+            cache: "no-store",
+
+            // لا نسمح للمتصفح بتحويل الطلب
+            redirect: "follow"
+        });
+
+
+        const elapsed =
+            Math.round(
+                performance.now() - startTime
+            );
+
+
+        document.getElementById("time").textContent =
+            elapsed + " ms";
+
+
+        log(
+            `🟢 [${requestNumber}] تم استلام HTTP Response`
+        );
+
+        log(
+            `   ⏱ الزمن: ${elapsed} ms`
+        );
+
+        log(
+            `   📊 Status: ${response.status} ${response.statusText}`
+        );
+
+        log(
+            `   🌐 URL النهائي: ${response.url}`
+        );
+
+
+        // فحص HTTP
+        if (!response.ok) {
+
+            errors++;
+
+            document.getElementById("errors").textContent =
+                errors;
+
+            log(
+                `❌ [${requestNumber}] HTTP ERROR: ${response.status}`
+            );
+
+            return;
+        }
+
+
+        // قراءة البيانات بالكامل
+        const text =
+            await response.text();
+
+
+        const responseSize =
+            new Blob([text]).size;
+
+
+        log(
+            `   📦 حجم الاستجابة: ${responseSize} bytes`
+        );
+
+
+        if (!text) {
+
+            errors++;
+
+            document.getElementById("errors").textContent =
+                errors;
+
+            log(
+                `⚠️ [${requestNumber}] الاستجابة فارغة!`
+            );
+
+            return;
+        }
+
+
+        // محاولة تحليل JSON
+        try {
+
+            const json =
+                JSON.parse(text);
+
+            success++;
+
+            document.getElementById("success").textContent =
+                success;
+
+            log(
+                `✅ [${requestNumber}] نجاح كامل — JSON صالح`
+            );
+
+            log(
+                `   📦 البيانات: ${text.substring(0, 150)}`
+            );
+
+        } catch (jsonError) {
+
+            errors++;
+
+            document.getElementById("errors").textContent =
+                errors;
+
+            log(
+                `⚠️ [${requestNumber}] HTTP ناجح لكن JSON غير صالح`
+            );
+
+            log(
+                `   ❗ JSON Error: ${jsonError.message}`
+            );
+
+            log(
+                `   📄 البيانات: ${text.substring(0, 300)}`
+            );
+        }
+
+
+    } catch (error) {
+
+        const elapsed =
+            Math.round(
+                performance.now() - startTime
+            );
+
+        errors++;
+
+        document.getElementById("errors").textContent =
+            errors;
+
+        log(
+            `\n🔴 [${requestNumber}] FETCH FAILED`
+        );
+
+        log(
+            `   ⏱ فشل بعد: ${elapsed} ms`
+        );
+
+        log(
+            `   ❗ Error name: ${error.name}`
+        );
+
+        log(
+            `   ❗ Error message: ${error.message}`
+        );
+
+        log(
+            `   ❗ Error: ${String(error)}`
+        );
+
+        log(
+            `   📡 المتصفح لم يحصل على HTTP Response`
+        );
+    }
+}
+
+
+async function startTest() {
+
+    if (running) {
+
+        log("⚠️ الاختبار يعمل بالفعل.");
+
+        return;
+    }
+
+    running = true;
+
+    log("\n========================================");
+    log("🚀 بدأ الاختبار");
+    log("========================================");
+
+    log(`🎯 الهدف: ${URL}`);
+    log(`⏱ الفاصل بعد انتهاء كل طلب: ${INTERVAL} ms`);
+    log("🔄 النمط: REQUEST → WAIT RESPONSE → WAIT 300ms");
+
+
+    while (running) {
+
+        await sendRequest();
+
+        if (!running)
+            break;
+
+        await sleep(INTERVAL);
+    }
+
+
+    log("\n⏹ توقف الاختبار.");
+}
+
+
+function stopTest() {
+
+    if (!running)
+        return;
+
+    running = false;
+
+    log("\n🛑 طلب إيقاف الاختبار...");
+}
+
+
+function clearLog() {
+
+    logElement.textContent = "";
+
+    sent = 0;
+    success = 0;
+    errors = 0;
+
+    document.getElementById("sent").textContent = "0";
+    document.getElementById("success").textContent = "0";
+    document.getElementById("errors").textContent = "0";
+    document.getElementById("time").textContent = "---";
+}
+
+</script>
+
+</body>
+</html>
