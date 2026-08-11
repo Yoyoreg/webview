@@ -1,0 +1,1894 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>محرك الخريطة المتطور - الكيانات والأصول</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0d7eff; font-family: sans-serif; }
+        canvas { display: block; }
+        #ui {
+            position: absolute; top: 100px; left: 20px;
+            background: rgba(255, 255, 255, 1); color: rgb(0, 0, 0);
+            padding: 15px; border-radius: 8px; border: 3px solid #000000; pointer-events: none;
+            z-index: 10;
+        }
+        .info { font-size: 14px; margin-bottom: 5px; }
+        .highlight { color: #4caf50; font-weight: bold; }
+        /* وضعنا الأزرار في يمين الشاشة ومنتصفها عمودياً */
+        #ui-controls {
+            position: absolute;
+            right: 30px;          /* المسافة من الحافة اليمنى */
+            top: 50%;             /* النزول لمنتصف الشاشة */
+            transform: translateY(-50%); /* إزاحة للأعلى بنصف طول الحاوية للتوسط الدقيق */
+            display: flex;
+            flex-direction: column; /* جعل الأزرار فوق بعضها */
+            gap: 30px;            /* مسافة بين الزرين */
+            z-index: 100;         /* للتأكد أنها فوق الخريطة */
+            pointer-events: auto; /* ضروري جداً لتتمكن من النقر على الأزرار */
+        }
+
+        /* تصميم الزر ليبدو احترافياً ويحتوي الـ SVG */
+        .zoom-btn {
+            width: 75px;           /* تحديد عرض الزر */
+            height: 75px;          /* تحديد طول الزر */
+            border: none;          /* إزالة الإطار */
+            outline: none;         /* إزالة إطار التركيز الأزرق/الأسود */
+            background: transparent; /* جعل الخلفية شفافة تماماً */
+            padding: 0;            /* إزالة أي مسافات داخلية تسبب ظهور خلفية */
+            cursor: pointer;
+            transition: transform 0.2s; /* تنعيم حركة التكبير فقط */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent; /* إزالة الومضة السوداء في الهواتف */
+        }
+
+        /* التفاعل عند تمرير الماوس: نكتفي بتكبير الأيقونة قليلاً */
+        .zoom-btn:hover { 
+            transform: scale(1.15); 
+            background: none; /* تأكيد عدم وجود خلفية */
+        }
+
+        .zoom-btn img { 
+            width: 100%; 
+            height: 100%; 
+            display: block;
+        }
+    </style>
+    <style>
+    /* حاوية المجموعات في الأسفل */
+    .menu-group {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 85px; /* مسافة أوسع قليلاً بين الأيقونات */
+        z-index: 101;
+        pointer-events: auto;
+    }
+
+    /* زر الأيقونة الشفاف */
+    .icon-btn {
+        width: 85px;  /* حجم موحد لجميع أزرار الواجهة */
+        height: 85px;
+        background: transparent;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        padding: 0;
+        transition: transform 0.2s;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .icon-btn:hover {
+        transform: scale(1.1); /* تكبير الأيقونة عند تمرير الماوس */
+    }
+
+    .icon-btn img {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+
+
+
+
+
+    .res-trigger-btn {
+        position: absolute;
+        top: 20px;    /* المسافة من الأعلى */
+        right: 220px; /* مزاح من اليمين نحو اليسار بقيمة 200 + هامش بسيط */
+        z-index: 102; /* ليكون فوق العناصر الأخرى */
+    }
+
+
+
+
+
+
+
+
+    /* زر العودة يمكن إعطاؤه فلتر لوني لتمييزه (اختياري) */
+    .icon-btn.back img {
+        filter: sepia(1) saturate(5) hue-rotate(-50deg); /* تلوين الأيقونة بالأحمر برمجياً */
+    }
+    </style>
+    <style>
+    #gold-board {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        width: 230px;  /* حجم اللوحة - عدله حسب صورتك */
+        height: 70px;
+        background: url('mn.svg') no-repeat center;
+        background-size: contain;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+
+    #gold-text {
+        color: #000000; /* ذهبي */
+        font-family: 'Showcard Gothic', 'Impact', sans-serif;
+        font-size:35px;
+        /*font-weight: bold;
+        /*text-shadow: 1px 1px 2px #000; /* ظل لبروز النص */
+        position: relative;
+        left: 20px; /* كلما زاد هذا الرقم، تحرك النص لليمين أكثر */
+        user-select: none;           /* للمتصفحات الحديثة */
+    }
+
+
+    #gold-board2 {
+        position: absolute;
+        top: 15px;
+        left: 300px;
+        width: 135px;  /* حجم اللوحة - عدله حسب صورتك */
+        height: 70px;
+        background: url('tm.svg') no-repeat center;
+        background-size: contain;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+
+    #gold-text2 {
+        color: #000000; /* ذهبي */
+        font-family: 'Showcard Gothic', 'Impact', sans-serif;
+        font-size:35px;
+        /*font-weight: bold;
+        /*text-shadow: 1px 1px 2px #000; /* ظل لبروز النص */
+        position: relative;
+        left: 20px; /* كلما زاد هذا الرقم، تحرك النص لليمين أكثر */
+        user-select: none;           /* للمتصفحات الحديثة */
+    }
+    #gold-board3 {
+        position: absolute;
+        top: 15px;
+        left: 500px;
+        width: 115px;  /* حجم اللوحة - عدله حسب صورتك */
+        height: 70px;
+        background: url('mv.svg') no-repeat center;
+        background-size: contain;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 100;
+    }
+
+    #gold-text3 {
+        color: #000000; /* ذهبي */
+        font-family: 'Showcard Gothic', 'Impact', sans-serif;
+        font-size:35px;
+        /*font-weight: bold;
+        /*text-shadow: 1px 1px 2px #000; /* ظل لبروز النص */
+        position: relative;
+        left: 20px; /* كلما زاد هذا الرقم، تحرك النص لليمين أكثر */
+        user-select: none;           /* للمتصفحات الحديثة */
+    }
+
+</style>
+<style>
+/* حاوية الأزرار الجانبية الشفافة */
+.side-buttons-wrapper {
+    position: fixed;
+    top: calc(50% + 200px); /* المنتصف + إزاحة 20 بكسل لأسفل */
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between; 
+    padding: 0 35px; /* مسافة من الحواف */
+    pointer-events: none; 
+    z-index: 999;
+    transform: translateY(-50%);
+}
+
+/* الزر كحاوية شفافة تماماً */
+.game-side-btn {
+    background: none;      /* إزالة الخلفية */
+    border: none;          /* إزالة الإطار */
+    padding: 0;            /* إزالة أي مسافات داخلية */
+    cursor: pointer;
+    pointer-events: auto;  /* تفعيل الضغط على الصورة */
+    transition: transform 0.2s ease;
+    outline: none;         /* إزالة إطار التركيز الأزرق الافتراضي */
+}
+
+/* تأثير التكبير عند تمرير الماوس على الصورة */
+.game-side-btn:hover {
+    transform: scale(1.15); /* تكبير بسيط ليعرف اللاعب أنه قابل للضغط */
+}
+
+/* التحكم بحجم صورة الـ SVG مباشرة */
+.game-side-btn img {
+    width: 85px;  /* كبرت الحجم قليلاً لتعويض اختفاء الإطار */
+    height: 85px;
+    display: block;
+}
+</style>
+<style>
+    /* الفئة العامة لسلسلة النوافذ في جهة اليسار */
+    .left-series-panel {
+        display: none; /* مخفية برمجياً في البداية */
+        position: fixed;
+        left: 20px; /* التموضع في اليسار */
+        top: 50%;
+        transform: translateY(-50%); /* التوسط العمودي */
+        flex-direction: column; /* ترتيب الأزرار عمودياً */
+        gap: 10px; /* مسافة بين الأزرار */
+        z-index: 1000; /* طبقة عليا فوق الخريطة */
+        
+        /* إزالة أي خلفية أو إطار لتكون مثل أزرار الزوم */
+        background: none;
+        border: none;
+        padding: 0;
+    }
+
+    /* تنسيق الأزرار الشفافة (مثل أزرار الزوم) */
+    .map-control-btn-left {
+        background: none;
+        border: none;
+        padding: 0;
+        cursor: pointer;
+        outline: none;
+        transition: transform 0.2s, opacity 0.2s;
+    }
+
+    .map-control-btn-left:hover {
+        transform: scale(1.1);
+        opacity: 1; /* تصبح كاملة الوضوح عند التأشير */
+    }
+
+    .map-control-btn-left img {
+        width: 70px; /* حجم الأيقونة */
+        height: 70px;
+        display: block;
+    }
+</style>
+<style>
+
+.notification-panel {
+    position: fixed; 
+    /* --- حدد موقع الزرين من هنا --- */
+    bottom: 700px;       /* المسافة من أسفل الشاشة */
+    left: 200px;        /* المسافة من يمين الشاشة */
+    
+    display: flex;      /* جعل العناصر تصطف بجانب بعضها */
+    flex-direction: row;/* ترتيب أفقي في نفس السطر */
+    gap: 15px;          /* المسافة بين الزرين */
+    direction: rtl;
+    z-index: 10000;     /* لضمان ظهورهما فوق الخريطة */
+    user-select: none; -webkit-user-select: none;
+}
+
+/* التصميم الأساسي الموحد للزرين */
+.btn-noti-box {
+    position: relative;
+    width: 65px;
+    height: 65px;
+    background: #3a3a3a;
+    border: 2px solid #ffcc00;
+    border-radius: 15px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    transition: all 0.2s ease;
+}
+
+.btn-noti-box:hover {
+    background: #4a4a4a;
+    transform: scale(1.05);
+}
+
+img { pointer-events: none; user-select: none; }
+
+/* حجم الأيقونات داخل الأزرار */
+.btn-noti-box svg {
+    width: 32px;
+    height: 32px;
+    fill: #ffcc00;
+    transition: fill 0.3s ease;
+}
+
+/* --- وضع التنبيه النشط (الاهتزاز والتحول للأحمر) --- */
+.btn-noti-box.active-alert {
+    border-color: #ff4444;
+    animation: wiggleAlert 1.5s infinite ease-in-out;
+}
+
+.btn-noti-box.active-alert svg {
+    fill: #ff4444;
+}
+
+@keyframes wiggleAlert {
+    0%, 100%, 20% { transform: rotate(0deg) scale(1); }
+    5% { transform: rotate(12deg) scale(1.05); }
+    10% { transform: rotate(-12deg) scale(1.05); }
+    15% { transform: rotate(12deg) scale(1.05); }
+}
+</style>
+</head>
+<body>
+
+<div id="p-1" class="left-series-panel">
+    <button id="pb-m" class="map-control-btn-left" onclick="lockSelectedObject(0)">
+        <img src="slq0.svg">
+    </button>
+    <button id="pb-m" class="map-control-btn-left" onclick="lockSelectedObject(1)">
+        <img src="slq1.svg">
+    </button>
+</div>
+
+<div id="p-2" class="left-series-panel">
+    <button id="pb-1" class="map-control-btn-left"><img src="icons/opt1.png"></button>
+    <button id="pb-2" class="map-control-btn-left"><img src="icons/opt2.png"></button>
+    <button id="pb-3" class="map-control-btn-left"><img src="icons/opt3.png"></button>
+</div>
+
+<div id="side-btns-container" class="side-buttons-wrapper" style="display: none;">
+    <button class="game-side-btn" onclick="make_r()">
+        <img src="ok.svg" alt="Left">
+    </button>
+
+    <button class="game-side-btn" onclick="toggleSideButtons(false); s(false)">
+        <img src="no.svg" alt="Right">
+    </button>
+
+</div>
+<div id="side-btns-container2" class="side-buttons-wrapper" style="display: none;">
+    <button class="game-side-btn" onclick="move_rs()">
+        <img src="ok.svg" alt="Left">
+    </button>
+
+    <button class="game-side-btn" onclick="toggleSideButtons2(false); s(false)">
+        <img src="no.svg" alt="Right">
+    </button>
+
+</div>
+</div>
+<div id="side-btns-container3" class="side-buttons-wrapper" style="display: none;">
+    <button class="game-side-btn" onclick="log_rs()">
+        <img src="ok.svg" alt="Left">
+    </button>
+
+    <button class="game-side-btn" onclick="toggleSideButtons3(false); s(false)">
+        <img src="no.svg" alt="Right">
+    </button>
+
+</div>
+
+<div id="ui">
+    <div class="info">ص: <span id="pos1">0</span></div>
+    <div class="info">س: <span id="pos2">0</span></div>
+    <div class="info">نوع: <span id="terrain">-</span></div>
+</div>
+<div id="ui-controls">
+    <button onclick="changeZoom(1.2)" class="zoom-btn">
+        <img src="z+z.svg" alt="Zoom In">
+    </button>
+    <button onclick="changeZoom(0.8)" class="zoom-btn">
+        <img src="z-z.svg" alt="Zoom Out">
+    </button>
+</div>
+
+<button onclick="manageResWindow(true);msg_mng('hide');send_msg_mng('hide');toggleCreateOfferWindow('hide');offers_mng('hide')" class="icon-btn res-trigger-btn">
+    <img src="box.svg" alt="Resources">
+</button>
+
+
+<div id="1" class="menu-group">
+    <button onclick="showSubMenu('5')" class="icon-btn" title="الصفقات">
+        <img src="pl.svg" alt="A">
+    </button>
+    <button onclick="" class="icon-btn" title="عسكري">
+        <img src="ar.svg" alt="B">
+    </button>
+    <button onclick="showSubMenu('2')" class="icon-btn" title="الاقتصاد">
+        <img src="ik.svg" alt="B">
+    </button>
+</div>
+
+<div id="5" class="menu-group" style="display: none;">
+    <button onclick="manageResWindow(false); msg_mng('show') ;send_msg_mng('hide');toggleCreateOfferWindow('hide');offers_mng('hide')" class="icon-btn"><img src="brd.svg" alt="E"></button>
+    <button onclick="manageResWindow(false); msg_mng('hide') ;send_msg_mng('show');toggleCreateOfferWindow('hide');offers_mng('hide')" class="icon-btn"><img src="rsl.svg" alt="E"></button>
+    <button onclick="manageResWindow(false); msg_mng('hide') ;send_msg_mng('hide');toggleCreateOfferWindow('hide');offers_mng('show')" class="icon-btn"><img src="sfqbox.svg" alt="E"></button>
+    <button onclick="manageResWindow(false); msg_mng('hide') ;send_msg_mng('hide') ;toggleCreateOfferWindow('show');offers_mng('hide')" class="icon-btn"><img src="maksfq.svg" alt="E"></button>
+
+    <button onclick="showSubMenu('1') ; s(false) " class="icon-btn">
+        <img src="back.svg" alt="عودة">
+    </button>
+</div>
+<div id="6" class="menu-group" style="display: none;">
+    <button onclick="make_obj('spx1') ; s(false)" class="icon-btn"><img src="spr.svg" alt="E"></button>
+    <button onclick="showSubMenu('1') ; s(false) " class="icon-btn">
+        <img src="back.svg" alt="عودة">
+    </button>
+</div>
+<div id="7" class="menu-group" style="display: none;">
+    <button onclick="make_obj('spx1') ; s(false)" class="icon-btn"><img src="spr.svg" alt="E"></button>
+    <button onclick="sendMoveLogisticsRequest(); s(false)" class="icon-btn"><img src="move.svg" alt="E"></button>
+    <button onclick="sendlgLogisticsRequest(); s(false)" class="icon-btn"><img src="lg.svg" alt="E"></button>
+    <button onclick="showSubMenu('1') ; s(false) ;clearGlobalMapSelection(),clearobjslq()" class="icon-btn">
+        <img src="back.svg" alt="عودة">
+    </button>
+</div>
+
+<div id="2" class="menu-group" style="display: none;">
+    <button class="icon-btn"><img src="ik1.svg" alt="E"></button>
+    <button class="icon-btn"><img src="ik2.svg" alt="E"></button>
+    <button onclick="make_obj('tnt') ;s(true)" class="icon-btn"><img src="ik3.svg" alt="E"></button>
+    <button class="icon-btn"><img src="ik4.svg" alt="E"></button>
+    <button onclick="showSubMenu('4') ; s(false) " class="icon-btn"><img src="ik5.svg" alt="E"></button>
+    <button onclick="showSubMenu('3')" class="icon-btn"><img src="ik6.svg" alt="E"></button>
+    <button onclick="showSubMenu('1') ; s(false) " class="icon-btn">
+        <img src="back.svg" alt="عودة">
+    </button>
+</div>
+
+<div id="3" class="menu-group" style="display: none; gap: 30px !important;">
+        <button onclick="make_obj('pk') ; s(false)" class="icon-btn"><img src="msr/kmh.svg" alt="E"></button>
+    <button onclick="make_obj('pd') ; s(false)" class="icon-btn"><img src="msr/dra.svg" alt="E"></button>
+    <button onclick="make_obj('pl') ; s(false)" class="icon-btn"><img src="msr/lob.svg" alt="E"></button>
+    <button onclick="make_obj('pt') ; s(false)" class="icon-btn"><img src="msr/tut.svg" alt="E"></button>
+    <button onclick="make_obj('pp') ; s(false)" class="icon-btn"><img src="msr/tfh.svg" alt="E"></button>
+    <button onclick="make_obj('ppt') ; s(false)" class="icon-btn"><img src="msr/ptt.svg" alt="E"></button>
+    <button onclick="make_obj('ps') ; s(false)" class="icon-btn"><img src="msr/ksb.svg" alt="E"></button>
+
+    <button onclick="showSubMenu('2') ; s(false) " class="icon-btn">
+        <img src="back.svg" alt="عودة">
+    </button>
+</div>
+<div id="4" class="menu-group" style="display: none; gap: 30px !important;">
+    <button onclick="make_obj('mzs') ; s(false)" class="icon-btn"><img src="msr/kph.svg" alt="E"></button>
+    <button onclick="make_obj('mzb') ; s(false)" class="icon-btn"><img src="msr/bar.svg" alt="E"></button>
+    <button onclick="make_obj('mzb') ; s(false)" class="icon-btn"><img src="msr/dgg.svg" alt="E"></button>
+
+    <button onclick="showSubMenu('2') ; s(false) " class="icon-btn">
+        <img src="back.svg" alt="عودة">
+    </button>
+</div>
+
+
+
+<div id="gold-board">
+    <span id="gold-text">0</span>
+</div>
+
+<div id="gold-board2">
+    <span id="gold-text2">0</span>
+</div>
+
+<div id="gold-board3">
+    <span id="gold-text3">0</span>
+</div>
+
+
+<div id="flag-container" style="
+    position: absolute; 
+    top: 20px; 
+    right: 20px; 
+    transition: opacity 0.5s ease; 
+    opacity: 0;">
+    
+    <img id="player-flag" src="" width="100" style="border-radius: 5px; border: 3px solid rgba(0, 0, 0, 1);">
+</div>
+
+<div class="notification-panel">
+    <div id="btn-msg" class="btn-noti-box" onclick="handleNotiClick('msg')">
+        <svg viewBox="0 0 24 24">
+            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+        </svg>
+    </div>
+
+    <div id="btn-sfq" class="btn-noti-box" onclick="handleNotiClick('sfq')">
+        <svg viewBox="0 0 24 24">
+            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+        </svg>
+    </div>
+</div>
+
+
+<canvas id="gameCanvas"></canvas>
+<script>
+/**
+ * نظام فحص الشبكة التلقائي المبسط (بنفس أسلوب دالة الإرسال الصامتة)
+ */
+(function() {
+    // تعيين قيم مبدئية
+    window.ippt = "103";
+    window.ip = "103";
+
+    // دالة ذكية تعمل بنظام الانتظار (async/await)
+    window.findServerIPSimple = async function() {
+        console.log("🔄 جاري البحث الذكي عن السيرفر (نظام الدفعات لتجنب اختناق المتصفح)...");
+        
+        let found = false;
+        const batchSize = 10;   // عدد الأجهزة التي نفحصها في نفس الوقت (10 رقم مثالي وآمن)
+        const timeoutMs = 400;  // وقت الانتظار لكل عنوان
+
+        // المرور على العناوين من 1 إلى 254 بنظام الدفعات
+        for (let i = 1; i <= 254; i += batchSize) {
+            if (found) break; // التوقف فوراً إذا وجدنا السيرفر في الدفعة السابقة
+
+            const batchPromises = [];
+            
+            // تجهيز دفعة من 10 عناوين
+            for (let j = 0; j < batchSize && (i + j) <= 254; j++) {
+                const currentIP = (i + j).toString();
+                batchPromises.push(checkSingleIP(currentIP, timeoutMs));
+            }
+
+            // انتظار هذه الدفعة حتى تنتهي بالكامل قبل الانتقال للدفعة التالية
+            const results = await Promise.all(batchPromises);
+            
+            // التحقق مما إذا كان السيرفر من ضمن هذه الدفعة
+            const successIP = results.find(res => res !== null);
+            
+            if (successIP) {
+                window.ippt = successIP;
+                window.ip = successIP;
+                console.log(`🎯 تم العثور على السيرفر بنجاح! الـ IP هو: 192.168.8.${successIP}`);
+                found = true;
+                break;
+            }
+        }
+        
+        if (!found) {
+            console.log("⚠️ انتهى البحث ولم يتم العثور على السيرفر. تأكد من تشغيل بايثون وأنك على نفس الشبكة.");
+        }
+    };
+
+    // دالة مساعدة لفحص عنوان IP واحد بهدوء
+    function checkSingleIP(ipToCheck, timeout) {
+        return new Promise((resolve) => {
+            const url = `http://192.168.8.${ipToCheck}:8080/?msg=["http_ip_ok"]`;
+            const controller = new AbortController();
+            
+            // مؤقت لقتل الطلب إذا لم يرد
+            const timer = setTimeout(() => {
+                controller.abort();
+                resolve(null);
+            }, timeout);
+
+            // نستخدم mode: 'no-cors' لتخطي حظر المتصفح تماماً أثناء الفحص
+            fetch(url, { signal: controller.signal, mode: 'no-cors' })
+                .then(() => {
+                    clearTimeout(timer);
+                    // إذا وصل الكود إلى هنا، فهذا يعني أن الجهاز موجود ورد علينا!
+                    resolve(ipToCheck);
+                })
+                .catch(() => {
+                    clearTimeout(timer);
+                    // فشل الاتصال (الجهاز مغلق أو غير موجود)
+                    resolve(null);
+                });
+        });
+    }
+
+    // تشغيل الدالة
+    window.findServerIPSimple();
+})();
+
+</script>
+<script src="lgt.js"></script>
+<script src="msg.js"></script>
+<script src="res_ui.js"></script>
+<script src="send_msg.js"></script>
+<script src="offers.js"></script>
+<script src="login.js"></script>
+
+
+<script src="create_offer.js"></script>
+
+
+
+
+
+
+
+
+<script>
+window.logt_box = [
+    [
+        [0, 'pk', 150],
+        [0, 'pl', 200],
+        [0, 'pk', 150],
+        [0, 'pl', 200],
+        [0, 'pk', 150],
+        [0, 'pl', 200],
+        [0, 'pk', 150],
+        [0, 'pl', 200],
+        [0, 'pk', 150],
+        [0, 'pl', 200],
+        [0, 'pk', 150],
+        [0, 'pl', 200],
+        [0, 'gaz', 50]
+    ],
+    500 // المساحة المتبقية s
+];
+manageSendResWindow(true)
+
+
+switchLeftPanel("p-1");
+
+function getRandomInt(min, max) {
+    // نستخدم Math.floor لتقريب العدد لأسفل للحصول على عدد صحيح
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+ip=window.ippt
+if_cl=0
+objsl_x=-1
+objsl_y=-1
+objsl_l=-1
+
+window.id_devs = getRandomInt(0, 999999)
+
+window.ipg=ip
+rqs=""
+window.globalplayersmsg=[]
+
+
+function switchLeftPanel(targetPanelId) {
+    // 1. إخفاء كل النوافذ التي تنتمي للفئة 'left-series-panel'
+    document.querySelectorAll('.left-series-panel').forEach(panel => {
+        panel.style.display = 'none';
+    });
+
+    // 2. إظهار النافذة المستهدفة باستخدام flex لتحافظ على الترتيب العمودي
+    const target = document.getElementById(targetPanelId);
+    if (target) {
+        target.style.display = 'flex';
+    }
+}
+
+function setLeftBtnVisibility(btnId, show) {
+    const btn = document.getElementById(btnId);
+    if (btn) {
+        btn.style.display = show ? 'block' : 'none';
+    }
+}
+
+
+
+/**
+ * دالة تشغيل التنبيه (الوضع النشط)
+ * @param {string} type - نوع التنبيه إما ('msg' أو 'sfq')
+ */
+window.setNotification = function(type) {
+    const targetId = type === 'msg' ? 'btn-msg' : 'btn-sfq';
+    const btn = document.getElementById(targetId);
+    if (btn) btn.classList.add('active-alert');
+};
+
+/**
+ * دالة إيقاف التنبيه وإعادة الزر لحالة الخمول
+ * @param {string} type - نوع التنبيه المراد إيقافه ('msg' أو 'sfq')
+ */
+window.clearNotification = function(type) {
+    const targetId = type === 'msg' ? 'btn-msg' : 'btn-sfq';
+    const btn = document.getElementById(targetId);
+    if (btn) btn.classList.remove('active-alert');
+};
+
+/**
+ * الدالة التي تُستدعى عند الضغط على الزر لإرسال الطلب للسيرفر وإيقاف الاهتزاز
+ * @param {string} type - نوع الزر المضغوط ('msg' أو 'sfq')
+ */
+window.handleNotiClick = function(type) {
+    const ip = window.ip;
+    const id_devs = window.id_devs;
+    
+    // تحويل النوع بناءً على رغبتك (rs للرسائل و sf للصفقات)
+    const serverType = type === 'msg' ? 'rs' : 'sf';
+    
+    // تجهيز رابط الـ HTTP المطلوب تماماً
+    const url = `http://192.168.8.${ip}:8080/?msg=[${id_devs},"rss","${serverType}"]`;
+    
+    console.log(`تم الضغط على زر التنبيه، جاري إرسال الطلب: ${url}`);
+    
+    // إرسال الطلب بشكل صامت للسيرفر
+    fetch(url).catch(() => {});
+    
+    // إرجاع الزر المضغوط لحالة الخمول (إيقاف الاهتزاز) فوراً عند النقر
+
+
+};
+
+function clearGlobalMapSelection() {
+    window.globalmapslct = [];
+    console.log("🧹 تم تنظيف خانات النظام وإفراغ القائمة.");
+}
+function clearobjslq(){
+    objsl_x = -1;
+    objsl_y = -1;
+    objsl_l = -1;
+}
+function sendlgLogisticsRequest() {
+    // 1. تحقق أولاً أن اللاعب قام بتحديد خانة على الخريطة
+    if (!selectedTile) {
+        console.log("⚠️ يرجى تحديد الخانة الحالية أولاً!");
+        return;
+    }
+
+    // المفترض أن المتغيرات التالية (ip, id_devs) معرّفة لديك مسبقاً في البرنامج
+    // نقوم بصياغة الرابط بدقة بالقيم المحددة من قبلك
+    const url = `http://192.168.8.${ip}:8080/?msg=[${id_devs},"rol","logt_l1?",[${objsl_y},${objsl_x}]]`;
+
+    console.log("🚀 جاري إرسال الطلب اللوجستي إلى بايثون:", url);
+
+    // 2. إرسال طلب الـ HTTP الفعلي
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("فشل الاتصال بالسيرفر!");
+            }
+            return response.text(); // السيرفر قد يرجع نص عادي أو JSON
+        })
+        .then(data => {
+            // تنظيف النص القادم من أي مساحات فارغة
+            const cleanData = data.trim();
+
+            // 3. التحقق من إجابة بايثون
+            if (cleanData === "NME") {
+                console.log("❌ السيرفر أجاب بـ NME: الحركة غير مسموحة أو القطعة ليست لوجستية.");
+                // لا نفعل أي شيء، نتجاهل الأمر تماماً كما طلبت
+                return;
+            }
+
+            // 4. إذا لم تكن الإجابة NME، نفترض أنها القائمة المرسلة من النظام
+            try {
+                // تحويل النص القادم (مثل مصفوفة الـ JSON) إلى مصفوفة جافا سكريبت حقيقية
+                const parsedList = JSON.parse(cleanData);
+                
+                if (Array.isArray(parsedList)) {
+                    // تمرير القائمة مباشرة إلى قائمة الخانات المختارة لتضيء على الخريطة فوراً!
+                    window.globalmapslct = parsedList;
+                    toggleSideButtons3(true)
+                    console.log("✅ تم تحديث خانات الإمداد/الحركة بنجاح:", window.globalmapslct);
+                }
+            } catch (error) {
+                console.error("⚠️ حدث خطأ أثناء محاولة قراءة قائمة الخانات القادمة من بايثون:", error);
+            }
+        })
+        .catch(err => {
+            console.error("🚨 خطأ في شبكة الاتصال:", err);
+        });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function sendMoveLogisticsRequest() {
+    // 1. تحقق أولاً أن اللاعب قام بتحديد خانة على الخريطة
+    if (!selectedTile) {
+        console.log("⚠️ يرجى تحديد الخانة الحالية أولاً!");
+        return;
+    }
+
+    // المفترض أن المتغيرات التالية (ip, id_devs) معرّفة لديك مسبقاً في البرنامج
+    // نقوم بصياغة الرابط بدقة بالقيم المحددة من قبلك
+    const url = `http://192.168.8.${ip}:8080/?msg=[${id_devs},"rol","move_l1?",[${objsl_y},${objsl_x}]]`;
+
+    console.log("🚀 جاري إرسال الطلب اللوجستي إلى بايثون:", url);
+
+    // 2. إرسال طلب الـ HTTP الفعلي
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("فشل الاتصال بالسيرفر!");
+            }
+            return response.text(); // السيرفر قد يرجع نص عادي أو JSON
+        })
+        .then(data => {
+            // تنظيف النص القادم من أي مساحات فارغة
+            const cleanData = data.trim();
+
+            // 3. التحقق من إجابة بايثون
+            if (cleanData === "NME") {
+                console.log("❌ السيرفر أجاب بـ NME: الحركة غير مسموحة أو القطعة ليست لوجستية.");
+                // لا نفعل أي شيء، نتجاهل الأمر تماماً كما طلبت
+                return;
+            }
+
+            // 4. إذا لم تكن الإجابة NME، نفترض أنها القائمة المرسلة من النظام
+            try {
+                // تحويل النص القادم (مثل مصفوفة الـ JSON) إلى مصفوفة جافا سكريبت حقيقية
+                const parsedList = JSON.parse(cleanData);
+                
+                if (Array.isArray(parsedList)) {
+                    // تمرير القائمة مباشرة إلى قائمة الخانات المختارة لتضيء على الخريطة فوراً!
+                    window.globalmapslct = parsedList;
+                    toggleSideButtons2(true)
+                    console.log("✅ تم تحديث خانات الإمداد/الحركة بنجاح:", window.globalmapslct);
+                }
+            } catch (error) {
+                console.error("⚠️ حدث خطأ أثناء محاولة قراءة قائمة الخانات القادمة من بايثون:", error);
+            }
+        })
+        .catch(err => {
+            console.error("🚨 خطأ في شبكة الاتصال:", err);
+        });
+}
+
+
+
+
+
+
+function toggleSideButtons(val) {
+    const container = document.getElementById('side-btns-container');
+    if (!container) return;
+
+    // الانتظار لمدة 400 مللي ثانية (0.4 ثانية)
+    setTimeout(() => {
+        if (val === 1 || val === true) {
+            container.style.display = 'flex';
+            console.log("✅ تم الإظهار قسرياً");
+        } else {
+            container.style.display = 'none';
+            console.log("❌ تم الإخفاء قسرياً");
+        }
+    }, 400); 
+}
+
+
+
+
+
+
+
+
+
+
+function lockSelectedObject(layer) {
+    // 1. تحقق من وجود خانة محددة حالياً بواسطة اللاعب لنسخ إحداثياتها
+    if (!selectedTile) {
+        console.log("⚠️ لا توجد خانة محددة لقفل الكائن عليها!");
+        return;
+    }
+
+    // 2. تخزين معلومات الكائن المختار بدقة في متغيراتك العالمية
+    objsl_x = selectedTile.x;
+    objsl_y = selectedTile.y;
+    objsl_l = layer;
+
+    console.log(`🔒 تم قفل الكائن بنجاح -> X: ${objsl_x}, Y: ${objsl_y}, Layer: ${objsl_l}`);
+
+    // 3. توجيه القوائم الجانبية (SubMenus) بناءً على رقم الطبقة
+    if (layer === 0) {
+        showSubMenu('6'); // فتح قائمة التحكم بالوحدات/القطع اللوجستية مثلاً
+    } else if (layer === 1) {
+        showSubMenu('7'); // فتح قائمة التحكم بالمنشآت والمباني مثلاً
+    }
+}  
+
+
+
+
+function toggleSideButtons2(val) {
+    const container = document.getElementById('side-btns-container2');
+    if (!container) return;
+
+    // الانتظار لمدة 400 مللي ثانية (0.4 ثانية)
+    setTimeout(() => {
+        if (val === 1 || val === true) {
+            container.style.display = 'flex';
+            if_cl=1
+            console.log("✅ تم الإظهار قسرياً");
+        } else {
+            container.style.display = 'none';
+            if_cl=0
+            showSubMenu('1')
+            console.log("❌ تم الإخفاء قسرياً");
+        }
+    }, 400); 
+}
+
+
+function toggleSideButtons3(val) {
+    const container = document.getElementById('side-btns-container3');
+    if (!container) return;
+
+    // الانتظار لمدة 400 مللي ثانية (0.4 ثانية)
+    setTimeout(() => {
+        if (val === 1 || val === true) {
+            container.style.display = 'flex';
+            if_cl=1
+            console.log("✅ تم الإظهار قسرياً");
+        } else {
+            container.style.display = 'none';
+            if_cl=0
+            showSubMenu('1')
+            console.log("❌ تم الإخفاء قسرياً");
+        }
+    }, 400); 
+}
+
+
+
+
+function move_rs() {
+
+
+    fetch(`http://192.168.8.${ip}:8080/?msg=[${id_devs},"rol","move_obj_l1",[${objsl_y},${objsl_x},${selectedTile.y},${selectedTile.x}]]`, {
+        mode: 'no-cors',
+        priority: 'high'
+    })
+    .then(() => {
+        console.log(`%c [Success] الطلب خرج من المتصفح بنجاح (Type: ${rqs})`, 'color: #00bfff');
+        console.log(`[1,"rol","make_obj",['${type}',${selectedTile.y},${selectedTile.x}]]`);
+    })
+    .catch(err => {
+        console.error(`[Error] فشل إرسال الطلب:`, err);
+    });
+    toggleSideButtons2(false);
+    s(false);
+}
+
+
+
+
+
+
+function logt_rs() {
+
+    const url = `http://192.168.8.${ip}:8080/?msg=[${id_devs},"rol","move_obj_l${objsl_l}",[${objsl_y},${objsl_x},${selectedTile.y},${selectedTile.x}]]`;
+
+    console.log("🚀 جاري إرسال الطلب اللوجستي إلى بايثون:", url);
+
+    // 2. إرسال طلب الـ HTTP الفعلي
+    fetch(url)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("فشل الاتصال بالسيرفر!");
+            }
+            return response.text(); // السيرفر قد يرجع نص عادي أو JSON
+        })
+        .then(data => {
+            // تنظيف النص القادم من أي مساحات فارغة
+            const cleanData = data.trim();
+
+            // 3. التحقق من إجابة بايثون
+            if (cleanData === "NME") {
+                console.log("❌ السيرفر أجاب بـ NME: الحركة غير مسموحة أو القطعة ليست لوجستية.");
+                // لا نفعل أي شيء، نتجاهل الأمر تماماً كما طلبت
+                return;
+            }
+
+            // 4. إذا لم تكن الإجابة NME، نفترض أنها القائمة المرسلة من النظام
+            try {
+                // تحويل النص القادم (مثل مصفوفة الـ JSON) إلى مصفوفة جافا سكريبت حقيقية
+                const parsedList = JSON.parse(cleanData);
+                
+                if (Array.isArray(parsedList)) {
+                    // تمرير القائمة مباشرة إلى قائمة الخانات المختارة لتضيء على الخريطة فوراً!
+                    window.logt_box = parsedList;
+                    manageSendResWindow(true);
+                    toggleSideButtons3(false);
+                    s(false);
+                    console.log("✅تم :", window.logt_box);
+                }
+            } catch (error) {
+                console.error("⚠️ حدث خطأ أثناء محاولة قراءة قائمة الارسال القادمة من بايثون:", error);
+            }
+        })
+        .catch(err => {
+            console.error("🚨 خطأ في شبكة الاتصال:", err);
+        });
+    toggleSideButtons3(false);
+    s(false);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function make_obj(type) {
+
+    if (!selectedTile) {
+        console.warn("[Warning] لم يتم إرسال الطلب: لم يتم اختيار إحداثيات (selectedTile null)");
+        return;
+    }
+    rqs=`${type}`;
+    toggleSideButtons(true);
+}
+function make_r() {
+    const timestamp = new Date().getTime();
+    console.log(`%c [Interaction] تم النقر على الزر لإنشاء: ${rqs} في الوقت: ${timestamp}`, 'color: #00ff00; font-weight: bold');
+
+
+    fetch(`http://192.168.8.${ip}:8080/?msg=[${id_devs},"rol","make_obj",['${rqs}',${selectedTile.y},${selectedTile.x}]]`, {
+        mode: 'no-cors',
+        priority: 'high'
+    })
+    .then(() => {
+        console.log(`%c [Success] الطلب خرج من المتصفح بنجاح (Type: ${rqs})`, 'color: #00bfff');
+        console.log(`[1,"rol","make_obj",['${type}',${selectedTile.y},${selectedTile.x}]]`);
+    })
+    .catch(err => {
+        console.error(`[Error] فشل إرسال الطلب:`, err);
+    });
+    toggleSideButtons(false);
+    s(false);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function showSubMenu(menuId) {
+    // إخفاء الكل
+    document.querySelectorAll('.menu-group').forEach(m => m.style.display = 'none');
+    // إظهار المطلوب
+    const target = document.getElementById(menuId);
+    if (target) target.style.display = 'flex';
+    toggleSideButtons(false);
+}
+
+
+
+// أضف هذه في أسفل السكريبت تماماً
+
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// --- الإعدادات الأساسية ---
+let worldMap = [];
+let obj = []; // بيانات الكائنات من السيرفر [[type, x, y], ...]
+let camera = { x: 0, y: 0, zoom: 0.8 };
+let isDragging = false;
+let lastMouse = { x: 0, y: 0 };
+let selectedTile = null; // سيخزن {x, y} للخانة المختارة
+const tileSize = 40;
+const MAP_DIM = 100;
+let playerStats = [0, 0, 0]; // [النقود, الوقت, الحركات]
+
+let vsb = false; // الوضع الافتراضي: رسم الكائنات العادية
+
+const CAPITALS_LIB = {
+    1: "1p.svg", // عاصمة اللاعب 1
+    2: "2p.svg",
+    3: "3p.svg",
+};
+
+const player_colors = {
+    "0": null,          // لا يوجد لاعب
+    1: "#000000",     // اللاعب 1 (أحمر مثلاً)
+    2: "#da0000",     // اللاعب 2 (أخضر)
+    3: "#ffff00",     // اللاعب 3 (أصفر)
+    // أضف بقية الألوان هنا...
+};
+
+const players_flag = {
+    1: "flags/1.svg",
+    2: "flags/2.svg",
+    3: "flags/3.svg"
+};
+
+// مخزن للصور المحملة لمنع الوميض (Flicker)
+const loadedCapitals = {};
+
+
+const TERRAIN_CONFIG = {
+    'p':  { color: "#8B4513", name: "أرض خصبة" },
+    'm':  { color: "#EDC9AF", name: "صحراء" },
+    'mp': { color: "#0a9800", name: "غابة" },
+    'g':  { color: "#876341", name: "جبل" },
+    'w':  { color: "#87CEEB", name: "ماء حلو" },
+    'ws': { color: "#0d7eff", name: "ماء بحر مالح" }
+};
+
+// --- نظام الأصول (Assets) ---
+const ASSETS_LIB = {
+    "pk": "obj/pk.svg",
+    "pt": "obj/pt.svg",
+    "pd": "obj/pd.svg",
+    "ps": "obj/ps.svg",
+    "pp": "obj/pp.svg",
+    "ppt": "obj/ppt.svg",
+    "pl": "obj/pl.svg",
+    "mak": "obj/mak.svg",
+    "tnp": "obj/tnp.svg",
+    "tno": "obj/tno.svg",
+    "mzs": "obj/mzs.svg",
+    "mzb": "obj/mzb.svg",
+    "mzd": "obj/mzd.svg",
+
+
+    "x":"btn/x.svg",
+    "ptr":"btn/ptr.svg",
+    "gaz":"btn/gaz.svg",
+    "cu":"btn/cu.svg",
+    "f":"btn/f.svg",
+    "g":"btn/g.svg",
+    "ag":"btn/ag.svg",
+    "sl":"btn/sl.svg",
+    "urn":"btn/urn.svg",
+
+
+
+};
+
+const entityScales = {
+    "pk":0.9,
+    "pt": 0.9,
+    "pd": 0.9,
+    "ps": 0.9,
+    "pp": 0.9,
+    "ppt":0.9,
+    "pl": 0.9,
+    "mak": 0.9,
+    "tnp": 0.9,
+    "tno": 0.9,
+    "mzs": 0.9,
+    "mzb": 0.9,
+    "mzd": 0.9,
+
+
+    "x":0.8,
+    "ptr":0.8,
+    "gaz":0.8,
+    "cu":0.8,
+    "f":0.8,
+    "g":0.8,
+    "ag":0.8,
+    "sl":0.8,
+    "urn":0.8,
+
+
+
+
+};
+
+
+
+
+function s(v) {
+    clearGlobalMapSelection()
+    if (v){
+        vsb =true;
+    }else{
+        vsb =false;
+    }
+}
+
+
+
+const assetsCache = {}; 
+const bitmapCache = {}; 
+
+
+
+
+
+
+
+
+
+
+
+function changeZoom(factor) {
+    const oldZoom = camera.zoom;
+    const newZoom = Math.min(Math.max(camera.zoom * factor, 0.3), 5); // حدود الأمان
+
+    if (oldZoom !== newZoom) {
+        // الحساب السحري: تعديل موقع الكاميرا ليبقى المركز ثابتاً أثناء التكبير
+        // نحن نعدل X و Y بناءً على نسبة التغير في الزووم
+        camera.x *= (newZoom / oldZoom);
+        camera.y *= (newZoom / oldZoom);
+        
+        camera.zoom = newZoom;
+    }
+}
+
+
+function loadAssets() {
+    for (let key in ASSETS_LIB) {
+        const img = new Image();
+        img.src = ASSETS_LIB[key];
+        img.onload = () => { 
+            assetsCache[key] = img; 
+            console.log(`تم تحميل الأصل: ${key}`);
+        };
+    }
+}
+
+// دالة توليد صورة محسنة (Bitmap) بجودة عالية ومع الحفاظ على الأبعاد
+// دالة توليد صورة محسنة (Bitmap)
+function getOptimizedBitmap(type, zoom) {
+    const zoomKey = Math.round(zoom * 10) / 10;
+    const cacheKey = `${type}_${zoomKey}`;
+    if (bitmapCache[cacheKey]) return bitmapCache[cacheKey];
+
+    const source = assetsCache[type];
+    if (!source || source.width === 0) return null;
+
+    const aspectRatio = source.width / source.height;
+
+    // الحجم المطلوب: 80% من حجم الخانة الأصلي (ثابت)
+    const scaleFactor = entityScales[type] || entityScales['default'];
+    const maxDimension = tileSize * scaleFactor; 
+
+    // --- الإضافة الوحيدة: حدود الدقة (أقصى دقة للرسم هي زووم 3.0) ---
+    const limitedZoom = Math.min(zoom, 10.0); 
+
+    let drawW, drawH;
+    if (aspectRatio > 1) { 
+        drawW = maxDimension * limitedZoom; // نستخدم الزووم المحدود هنا للرسم فقط
+        drawH = drawW / aspectRatio;
+    } else { 
+        drawH = maxDimension * limitedZoom;
+        drawW = drawH * aspectRatio;
+    }
+
+    const offCanvas = document.createElement('canvas');
+    offCanvas.width = drawW;
+    offCanvas.height = drawH;
+    const offCtx = offCanvas.getContext('2d');
+
+    offCtx.imageSmoothingEnabled = true;
+    offCtx.imageSmoothingQuality = 'high';
+    offCtx.drawImage(source, 0, 0, drawW, drawH);
+
+    // نستخدم limitedZoom هنا أيضاً عند القسمة لضمان بقاء w و h مساوية لـ maxDimension دائماً
+    bitmapCache[cacheKey] = {
+        image: offCanvas,
+        w: drawW / limitedZoom, 
+        h: drawH / limitedZoom  
+    };
+    return bitmapCache[cacheKey];
+}
+// --- جلب البيانات ---
+let resourceList = []; // القائمة الجديدة التي ستشبه obj تماماً
+// القاموس الذي حددته لألوان اللاعبين (تأكد من وجوده في الأعلى)
+
+
+async function loadMapData() {
+    try {
+        const response = await fetch('http://192.168.8.'+ip+':8080/?msg=['+id_devs+',"map"]');
+        const data = await response.json();
+
+        if (data[0]) {
+            // 1. تحديث الأرضية كما هي
+            worldMap = data[0].slice(0, MAP_DIM).map(row => 
+                row.slice(0, MAP_DIM).map(cell => cell[0][0])
+            );
+
+            // 2. معالجة الموارد واللاعبين
+            resourceList = []; 
+            playerPresenceList = []; // قائمة جديدة لتخزين مواقع اللاعبين لتسريع الرسم
+
+            data[0].slice(0, MAP_DIM).forEach((row, y) => {
+                row.slice(0, MAP_DIM).forEach((cell, x) => {
+                    // الموارد [1]
+                    const resType = cell[0][1]; 
+                    if (resType !== 0 && resType !== null) {
+                        resourceList.push([resType, y, x]);
+                    }
+
+                    // اللاعبين [2] - نفترض أن الرقم الثالث هو معرف اللاعب
+                    const playerId = cell[0][2]; 
+                    if (playerId !== 0 && playerId !== null && player_colors[playerId]) {
+                        playerPresenceList.push([playerId, x, y]);
+                    }
+                });
+            });
+        }
+
+        if (data[1]) obj = data[1];
+        
+        if (data[2]) {
+            playerStats = data[2];
+            document.getElementById('gold-text').innerText = playerStats[0];
+            document.getElementById('gold-text2').innerText = playerStats[1];
+            document.getElementById('gold-text3').innerText = playerStats[2];
+            window.globalResources = data[2][4];
+            window.globalplayersmsg = data[2][5];
+            window.globalOffers = data[2][7];
+            offers_mng('upd')
+            msg_mng("upd")
+            if (data[2][6][0]===1){
+                setNotification("msg");
+            }else{
+                clearNotification("msg");
+            }
+            if (data[2][6][1]===1){
+                setNotification("sfq");
+            }else{
+                clearNotification("sfq");
+            }
+            
+            const flagImg = document.getElementById('player-flag');
+            const flagDiv = document.getElementById('flag-container');
+            const flagPath = players_flag[playerStats[3]]; // جلب المسار من القاموس بناءً على العنوان
+
+            if (flagPath) {
+                // إذا كان العلم المعروض حالياً مختلفاً عن الجديد
+                if (flagImg.src.indexOf(flagPath) === -1) {
+                    flagImg.src = flagPath;
+                    flagDiv.style.opacity = "1"; // إظهار بسلاسة
+                }
+            } else {
+                flagDiv.style.opacity = "0"; // إخفاء إذا لم يوجد علم
+            }
+
+
+
+
+        }
+    } catch (err) { console.error("Error:", err); }
+}
+
+
+// قائمة تجريبية وهمية تحاكي ما سيرسله بايثون لاحقاً
+// الترتيب داخل كل مصفوفة صغيرة هو: [Y, X, "Color"]
+window.globalmapslct = [   // خانة حمراء (مثلاً: مدى هجوم أو خطر)
+];
+
+// --- محرك الرسم ---
+function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (worldMap.length > 0) {
+        ctx.save();
+        // تحويل المشهد بناءً على الكاميرا
+        ctx.translate(canvas.width/2 + camera.x, canvas.height/2 + camera.y);
+        ctx.scale(camera.zoom, camera.zoom);
+
+        // 1. رسم الشبكة السوداء الموحدة
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(-1, -((MAP_DIM-1) * tileSize)-1 + tileSize, (MAP_DIM-1) * tileSize+1, (MAP_DIM-1) * tileSize+1);
+
+        // 2. داخل دالة render - قسم رسم التضاريس
+for (let y = 0; y < worldMap.length; y++) {
+    for (let x = 0; x < worldMap[y].length; x++) {
+        // نجلب القيمة الموجودة في خانة التضاريس [0]
+        const cellValue = worldMap[y][x]; 
+        
+        const tx = x * tileSize;
+        const ty = -(y * tileSize);
+
+        // --- أولاً: التحقق هل هي عاصمة؟ ---
+        if (CAPITALS_LIB[cellValue]) {
+            // إذا كانت عاصمة (مثل "ppp")، نرسم صورتها
+            if (!loadedCapitals[cellValue]) {
+                loadedCapitals[cellValue] = new Image();
+                loadedCapitals[cellValue].src = CAPITALS_LIB[cellValue];
+                loadedCapitals[cellValue].onload = () => { /* إعادة رسم تلقائية */ };
+            }
+
+            const capImg = loadedCapitals[cellValue];
+            if (capImg.complete) {
+                // ملء الخانة بصورة العاصمة تماماً
+                ctx.drawImage(capImg, tx, ty, tileSize - 1, tileSize - 1);
+            }
+        } 
+        // --- ثانياً: إذا لم تكن عاصمة، هل هي تضاريس عادية؟ ---
+        else {
+            const terrain = TERRAIN_CONFIG[cellValue];
+            if (terrain) {
+                ctx.fillStyle = terrain.color;
+                ctx.fillRect(tx, ty, tileSize - 1, tileSize - 1);
+            } else {
+                // لون افتراضي في حال كانت الخانة فارغة أو غير معروفة
+                ctx.fillStyle = "#333"; 
+                ctx.fillRect(tx, ty, tileSize - 1, tileSize - 1);
+            }
+        }
+    }
+}
+        // 3. رسم الكائنات أو الموارد بناءً على مفتاح vsb
+        // 3. رسم الكائنات أو الموارد بناءً على مفتاح vsb
+        ctx.imageSmoothingEnabled = (camera.zoom < 1.5);
+
+        const margin = 2;
+        const leftX = (-camera.x - canvas.width / 2) / (tileSize * camera.zoom) - margin;
+        const rightX = (-camera.x + canvas.width / 2) / (tileSize * camera.zoom) + margin;
+        const topY = (camera.y - canvas.height / 2) / (tileSize * camera.zoom) - margin;
+        const bottomY = (camera.y + canvas.height / 2) / (tileSize * camera.zoom) + margin;
+
+        const currentListToDraw = vsb ? (typeof resourceList !== 'undefined' ? resourceList : []) : obj;
+
+        // مصفوفة الطبقات بالترتيب: 0 للبيئة/الأرض، 1 للمنشآت المدنية، 2 للقطع اللوجستية والعسكرية
+        const layers = [0, 1, 2];
+
+        // نكرر الرسم لكل طبقة بالترتيب لضمان ظهور الطبقات العليا فوق السفلى دائماً
+        layers.forEach(currentLayer => {
+            currentListToDraw.forEach(entity => {
+                // استقبال الطبقة كعنصر رابع (إذا لم يرسلها بايثون نعتبرها طبقة 1 كافتراضي للتبسيط)
+                const [type, y, x, layer = 1] = entity; 
+
+                // نرسم الكائن فقط إذا كان ينتمي للطبقة الحالية التي يتم معالجتها الآن
+                if (layer === currentLayer) {
+                    if (x >= leftX && x <= rightX && y >= topY && y <= bottomY) {
+                        const data = getOptimizedBitmap(type, camera.zoom);
+                        if (data) {
+                            const tileX = x * tileSize;
+                            const tileY = -(y * tileSize);
+                            const offsetX = (tileSize - data.w) / 2;
+                            const offsetY = (tileSize - data.h) / 2;
+                            ctx.drawImage(data.image, tileX + offsetX, tileY + offsetY, data.w, data.h);
+                        }
+                    }
+                }
+            });
+        });
+        
+        playerPresenceList.forEach(p => {
+            const pId = p[0];
+            const px = p[1];
+            const py = p[2];
+
+            // جلب اللون من القاموس
+            const playerColor = player_colors[pId];
+
+            // التحقق: إذا لم يكن هناك لون (لاعب مجهول أو خانة فارغة) يتخطى الرسم فوراً
+            if (!playerColor || pId === "") return;
+
+            ctx.fillStyle = playerColor;
+            ctx.beginPath();
+    
+            // حسابات الموقع (أعلى-يسار الخلية)
+            const radius = tileSize * 0.08; 
+            // ملاحظة: أضفنا 2 بكسل كهامش لتبتعد الدائرة عن حدود الإطار الأسود قليلاً
+            const drawX = px * tileSize + radius + 3;
+            const drawY = -(py * tileSize) + radius + 3;
+
+            ctx.arc(drawX, drawY, radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // إطار أبيض صغير لتمييز الدائرة عن الخلفية
+            ctx.strokeStyle = "white";
+            ctx.lineWidth = 0.5;
+            ctx.stroke();
+        });
+
+
+
+
+        // رسم الإضاءة للخانة المختارة
+        // 1. رسم خانات النظام المحددة (window.globalmapslct) القادمة من بايثون
+        if (typeof window.globalmapslct !== 'undefined' && window.globalmapslct && window.globalmapslct.length > 0) {
+            ctx.save();
+            window.globalmapslct.forEach(tile => {
+                const [y, x, rgbColor] = tile; // استقبال الإحداثيات واللون [y, x, rgb]
+
+                // شرط الجوهر: إذا كانت هذه الخانة هي نفسها التي حددها اللاعب حالياً، نتخطى رسمها هنا
+                if (selectedTile && selectedTile.x === x && selectedTile.y === y) {
+                    return; // الانتقال للخانة التالية في الحلقة
+                }
+
+                // حساب المواقع على الكانفاس بنفس نظامك
+                const tx = x * tileSize;
+                const ty = -(y * tileSize);
+
+                // تحويل لون RGB القادم من بايثون إلى RGBA لإضافة الشفافية (مثلاً 0.4)
+                // إذا كان بايثون يرسل "rgb(0, 255, 0)" سنحوله إلى شفاف
+                let finalColor = rgbColor;
+                if (rgbColor.startsWith("rgb") && !rgbColor.startsWith("rgba")) {
+                    finalColor = rgbColor.replace("rgb", "rgba").replace(")", ", 0.4)");
+                }
+
+                ctx.fillStyle = finalColor;
+                ctx.fillRect(tx, ty, tileSize - 1, tileSize - 1);
+                
+                // رسم إطار خفيف جداً بنفس اللون ليعطي تحديداً تكتيكياً
+                ctx.strokeStyle = finalColor.replace(", 0.4)", ", 0.65)");
+                ctx.lineWidth = 2 / camera.zoom;
+                ctx.strokeRect(tx, ty, tileSize - 1, tileSize - 1);
+            });
+            ctx.restore();
+        }
+
+        // 2. رسم الخانة المختارة من قبل اللاعب حالياً (selectedTile) فوق كل شيء
+        if (selectedTile) {
+            ctx.save();
+            ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+            const tx = selectedTile.x * tileSize;
+            const ty = -(selectedTile.y * tileSize);
+            ctx.fillRect(tx, ty, tileSize - 1, tileSize - 1);
+            ctx.strokeStyle = "#ffffff";
+            ctx.lineWidth = 2 / camera.zoom;
+            ctx.strokeRect(tx, ty, tileSize - 1, tileSize - 1);
+            ctx.restore();
+        }
+
+        ctx.restore();
+    }
+    
+    requestAnimationFrame(render);
+}
+// 1. الدالة الموحدة التي تخدم الحاسوب والهاتف معاً
+function handleSelection(e) {
+    const worldX = (e.clientX - (canvas.width/2 + camera.x)) / camera.zoom;
+    const worldY = (e.clientY - (canvas.height/2 + camera.y)) / camera.zoom;
+    
+    const gx = Math.floor(worldX / tileSize);
+    const gy = Math.floor((-worldY + tileSize) / tileSize); 
+    
+    // إلغاء القفل إذا لم تكن هناك قائمة مفتوحة
+    if (if_cl === 0 && (objsl_x !== -1 || objsl_y !== -1 || objsl_l !== -1)) {
+        objsl_x = -1;
+        objsl_y = -1;
+        objsl_l = -1;
+        showSubMenu('1');
+        console.log("🧹 تم إلغاء القفل تلقائياً والعودة للقائمة الرئيسية 1");
+    }
+    
+    // تحديد الخانة إذا كانت داخل حدود الخريطة
+    if (gx >= 0 && gx < MAP_DIM-1 && gy >= 0 && gy < MAP_DIM-1) {
+        selectedTile = { x: gx, y: gy };
+        document.getElementById('pos1').innerText = `${gy}`;
+        document.getElementById('pos2').innerText = `${gx}`;
+
+        const code = worldMap[gy] ? worldMap[gy][gx] : null;
+        document.getElementById('terrain').innerText = TERRAIN_CONFIG[code] ? TERRAIN_CONFIG[code].name : "-";
+    }
+}
+
+// --- التفاعل والتحكم ---
+
+
+
+
+
+
+
+// =====================================================
+// نظام موحد للكمبيوتر والهاتف
+// Mouse + Touch + Pen
+// =====================================================
+
+let pointerDownX = 0;
+let pointerDownY = 0;
+let pointerMoved = false;
+
+canvas.style.touchAction = "none";
+
+
+// -----------------------------------------------------
+// تحويل إحداثيات الشاشة إلى إحداثيات Canvas
+// -----------------------------------------------------
+function getPointerPosition(e) {
+
+    const rect = canvas.getBoundingClientRect();
+
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+
+    return {
+        x: (e.clientX - rect.left) * scaleX,
+        y: (e.clientY - rect.top) * scaleY
+    };
+}
+
+
+// -----------------------------------------------------
+// بداية الضغط / اللمس
+// -----------------------------------------------------
+canvas.addEventListener("pointerdown", e => {
+
+    e.preventDefault();
+
+    canvas.setPointerCapture(e.pointerId);
+
+    const pos = getPointerPosition(e);
+
+    pointerDownX = pos.x;
+    pointerDownY = pos.y;
+
+    pointerMoved = false;
+
+    isDragging = true;
+
+    lastMouse = {
+        x: pos.x,
+        y: pos.y
+    };
+});
+
+
+// -----------------------------------------------------
+// تحريك الماوس / الإصبع
+// -----------------------------------------------------
+canvas.addEventListener("pointermove", e => {
+
+    if (!isDragging) return;
+
+    e.preventDefault();
+
+    const pos = getPointerPosition(e);
+
+    const dx = pos.x - lastMouse.x;
+    const dy = pos.y - lastMouse.y;
+
+    // إذا تحرك المؤشر/الإصبع أكثر من 8px
+    // نعتبر العملية سحباً وليس نقرة
+    if (
+        Math.abs(pos.x - pointerDownX) > 8 ||
+        Math.abs(pos.y - pointerDownY) > 8
+    ) {
+        pointerMoved = true;
+    }
+
+    camera.x += dx;
+    camera.y += dy;
+
+    lastMouse = {
+        x: pos.x,
+        y: pos.y
+    };
+});
+
+
+// -----------------------------------------------------
+// رفع الماوس / الإصبع
+// -----------------------------------------------------
+canvas.addEventListener("pointerup", e => {
+
+    e.preventDefault();
+
+    const pos = getPointerPosition(e);
+
+    isDragging = false;
+
+    // إذا لم يحدث سحب → هذه نقرة/لمسة
+    if (!pointerMoved) {
+        handleSelection({
+            clientX: pos.x,
+            clientY: pos.y,
+            isCanvasCoordinates: true
+        });
+    }
+
+    pointerMoved = false;
+});
+
+
+// -----------------------------------------------------
+// إلغاء اللمس
+// -----------------------------------------------------
+canvas.addEventListener("pointercancel", e => {
+
+    isDragging = false;
+    pointerMoved = false;
+});
+
+
+// -----------------------------------------------------
+// اختيار الخانة
+// -----------------------------------------------------
+function handleSelection(e) {
+
+    let canvasX;
+    let canvasY;
+
+    // الإحداثيات وصلت بالفعل بالنسبة للـ Canvas
+    if (e.isCanvasCoordinates) {
+
+        canvasX = e.clientX;
+        canvasY = e.clientY;
+
+    } else {
+
+        // تحويل إحداثيات الشاشة إلى إحداثيات Canvas
+        const rect = canvas.getBoundingClientRect();
+
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        canvasX =
+            (e.clientX - rect.left) * scaleX;
+
+        canvasY =
+            (e.clientY - rect.top) * scaleY;
+    }
+
+
+    // -------------------------------------------------
+    // تحويل Canvas coordinates إلى World coordinates
+    // -------------------------------------------------
+
+    const worldX =
+        (canvasX - (canvas.width / 2 + camera.x))
+        / camera.zoom;
+
+    const worldY =
+        (canvasY - (canvas.height / 2 + camera.y))
+        / camera.zoom;
+
+
+    // -------------------------------------------------
+    // تحديد الخانة
+    // -------------------------------------------------
+
+    const gx = Math.floor(worldX / tileSize);
+
+    const gy =
+        Math.floor((-worldY + tileSize) / tileSize);
+
+
+    // -------------------------------------------------
+    // إلغاء القفل إذا لم تكن هناك قائمة مفتوحة
+    // -------------------------------------------------
+
+    if (
+        if_cl === 0 &&
+        (
+            objsl_x !== -1 ||
+            objsl_y !== -1 ||
+            objsl_l !== -1
+        )
+    ) {
+
+        objsl_x = -1;
+        objsl_y = -1;
+        objsl_l = -1;
+
+        showSubMenu("1");
+
+        console.log(
+            "🧹 تم إلغاء القفل تلقائياً والعودة للقائمة الرئيسية 1"
+        );
+    }
+
+
+    // -------------------------------------------------
+    // التأكد أن الخانة داخل الخريطة
+    // -------------------------------------------------
+
+    if (
+        gx >= 0 &&
+        gx < MAP_DIM - 1 &&
+        gy >= 0 &&
+        gy < MAP_DIM - 1
+    ) {
+
+        // حفظ الخانة المختارة
+        selectedTile = {
+            x: gx,
+            y: gy
+        };
+
+
+        // تحديث الإحداثيات
+        document.getElementById("pos1").innerText =
+            `${gy}`;
+
+        document.getElementById("pos2").innerText =
+            `${gx}`;
+
+
+        // تحديث نوع التضاريس
+        const code =
+            worldMap[gy]
+                ? worldMap[gy][gx]
+                : null;
+
+        document.getElementById("terrain").innerText =
+            TERRAIN_CONFIG[code]
+                ? TERRAIN_CONFIG[code].name
+                : "-";
+
+
+        console.log(
+            `🎯 تم اختيار الخانة X=${gx}, Y=${gy}`
+        );
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+//----**-----
+
+canvas.onwheel = e => {
+    e.preventDefault();
+    
+    // تحديد معامل الزووم بناءً على اتجاه العجلة
+    const factor = e.deltaY > 0 ? 0.9 : 1.1;
+    
+    // استخدام الدالة الموحدة لضمان الالتزام بالحدود (0.15 إلى 5)
+    // وضمان ثبات المركز أثناء التكبير
+    changeZoom(factor);
+};
+
+window.onresize = () => { 
+    canvas.width = window.innerWidth; 
+    canvas.height = window.innerHeight; 
+};
+
+// --- التشغيل الفعلي ---
+window.onresize();
+loadAssets();
+setInterval(loadMapData, 300);
+render();
+</script>
+
+</body>
+</html>
